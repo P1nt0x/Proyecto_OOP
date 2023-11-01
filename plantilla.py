@@ -5,8 +5,11 @@ import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter import messagebox as mssg
 import sqlite3
-from PIL import Image, ImageTk #para abir el icono en linux
 import platform #para determinar el OS
+from datetime import datetime
+if platform.system() == "Linux":  
+  from PIL import Image, ImageTk
+
 class Inventario:  
   def __init__(self, master=None):
     self.path = path.dirname(path.abspath(__file__))
@@ -14,6 +17,7 @@ class Inventario:
     ancho=830;alto=630 # Dimensiones de la pantalla
     self.actualiza = False
     self.elimina = False
+    self.proveedores = [] 
 
     # Crea ventana principal
     self.win = tk.Tk() 
@@ -22,7 +26,7 @@ class Inventario:
     if platform.system() == "Windows":
       self.win.iconbitmap(self.path + r'/f2.ico')
     elif platform.system() == "Linux":
-      ima = Image.open('nino-modified.png')
+      ima = Image.open('nino-modified.png') #Esta foto esta para mostrarse solamente en sistemas linux
       pho = ImageTk.PhotoImage(ima)
       self.win.wm_iconphoto(True, pho)
     self.win.resizable(False, False)
@@ -30,7 +34,7 @@ class Inventario:
 
     #Centra la pantalla
     self.centra(self.win,ancho,alto)
-
+    
     # Contenedor de widgets   
     self.win = tk.LabelFrame(master)
     self.win.configure(background="#e0e0e0",font="{Arial} 12 {bold}",
@@ -48,12 +52,21 @@ class Inventario:
     self.lblIdNit.place(anchor="nw", x=10, y=40)
 
     #Captura IdNit del Proveedor
-    self.idNit = ttk.Entry(self.frm1)
-    self.idNit.configure(takefocus=True)
+    #self.idNit = ttk.Entry(self.frm1)
+    #self.idNit.configure(takefocus=True)
+    #self.idNit.place(anchor="nw", x=50, y=40)
+    #self.idNit.bind("<KeyRelease>", self.validaIdNit, add="+")
+    #self.idNit.bind("<KeyRelease>", self.updateProvider, add="+")
+    #self.idNit.bind("<BackSpace>", lambda _:self.idNit.delete(len(self.idNit.get())),'end')
+    
+
+    self.actualizarProveedores()
+    self.idNit = ttk.Combobox(self.frm1, values=self.proveedores)
     self.idNit.place(anchor="nw", x=50, y=40)
-    self.idNit.bind("<KeyRelease>", self.validaIdNit, add="+")
+    self.idNit.configure(takefocus=True)
+    self.idNit.bind("<<ComboboxSelected>>", self.buscar)
+    self.idNit.bind("<KeyRelease>", lambda event, widget = self.idNit, largo = 15 : self.validaVarChar(event, widget, largo), add="+")
     self.idNit.bind("<KeyRelease>", self.updateProvider, add="+")
-    self.idNit.bind("<BackSpace>", lambda _:self.idNit.delete(len(self.idNit.get())),'end')
 
     #Etiqueta razón social del Proveedor
     self.lblRazonSocial = ttk.Label(self.frm1)
@@ -63,20 +76,19 @@ class Inventario:
     #Captura razón social del Proveedor
     self.razonSocial = ttk.Entry(self.frm1)
     self.razonSocial.configure(width=36)
-    self.razonSocial.place(anchor="nw", x=290, y=40)
-    self.razonSocial.bind("<KeyRelease>", self.validaRS)
+    self.razonSocial.place(anchor="nw", x=295, y=40)
+    self.razonSocial.bind("<KeyRelease>", lambda event, widget=self.razonSocial, largo=50 : self.validaVarChar(event, widget, largo))
 
     #Etiqueta ciudad del Proveedor
     self.lblCiudad = ttk.Label(self.frm1)
     self.lblCiudad.configure(text='Ciudad', width=7)
-    self.lblCiudad.place(anchor="nw", x=540, y=40)
+    self.lblCiudad.place(anchor="nw", x=580, y=40)
 
     #Captura ciudad del Proveedor
     self.ciudad = ttk.Entry(self.frm1)
-    self.ciudad.configure(width=30)
-    self.ciudad.place(anchor="nw", x=590, y=40)
-    self.ciudad.bind("<KeyRelease>", self.validaCiudad)
-
+    self.ciudad.configure(width=20)
+    self.ciudad.place(anchor="nw", x=630, y=40)
+    self.ciudad.bind("<KeyRelease>", lambda event, widget = self.ciudad, largo = 50 : self.validaVarChar(event, widget, largo))
     #Separador
     self.separador1 = ttk.Separator(self.frm1)
     self.separador1.configure(orient="horizontal")
@@ -90,7 +102,7 @@ class Inventario:
     #Captura el código del Producto
     self.codigo = ttk.Entry(self.frm1)
     self.codigo.place(anchor="nw", x=60, y=120)
-    self.codigo.bind("<KeyRelease>", self.validaCodigo, add="+")
+    self.codigo.bind("<KeyRelease>", lambda event, widget = self.codigo, largo = 15 : self.validaVarChar(event, widget, largo), add="+")
     self.codigo.bind("<KeyRelease>", self.updateProduct, add="+")
 
     #Etiqueta descripción del Producto
@@ -101,19 +113,20 @@ class Inventario:
     #Captura la descripción del Producto
     self.descripcion = ttk.Entry(self.frm1)
     self.descripcion.configure(width=36)
-    self.descripcion.place(anchor="nw", x=290, y=120)
-    self.descripcion.bind("<KeyRelease>", self.validaDesc)
+    self.descripcion.place(anchor="nw", x=290, y=120) # 100
+    self.descripcion.bind("<KeyRelease>", lambda event, widget = self.descripcion, largo = 100 : self.validaVarChar(event, widget, largo))
 
     #Etiqueta unidad o medida del Producto
     self.lblUnd = ttk.Label(self.frm1)
     self.lblUnd.configure(text='Unidad', width=7)
-    self.lblUnd.place(anchor="nw", x=540, y=120)
+    self.lblUnd.place(anchor="nw", x=580, y=120)
 
     #Captura la unidad o medida del Producto
     self.unidad = ttk.Entry(self.frm1)
     self.unidad.configure(width=10)
-    self.unidad.place(anchor="nw", x=590, y=120)
-    self.unidad.bind("<KeyRelease>", self.validaUnd)
+    self.unidad.place(anchor="nw", x=630, y=120)
+    self.unidad.bind("<KeyRelease>", lambda event, widget = self.unidad, largo = 10 : self.validaVarChar(event, widget, largo))
+    self.unidad.delete(0, 'end')
 
     #Etiqueta cantidad del Producto
     self.lblCantidad = ttk.Label(self.frm1)
@@ -138,18 +151,26 @@ class Inventario:
     #Etiqueta fecha de compra del Producto
     self.lblFecha = ttk.Label(self.frm1)
     self.lblFecha.configure(text='Fecha', width=6)
-    self.lblFecha.place(anchor="nw", x=350, y=170)
+    self.lblFecha.place(anchor="nw", x=340, y=170)
 
     #Captura la fecha de compra del Producto
     self.fecha = ttk.Entry(self.frm1)
-    self.fecha.configure(width=10)
-    self.fecha.place(anchor="nw", x=390, y=170)
+    self.fecha.configure(width=11)
+    self.fecha.place(anchor="nw", x=380, y=170)
+
+    #Estilo para configurar el tamaño del boton "Auto"
+    TextoPequenno = ttk.Style()
+    TextoPequenno.configure("TextoPequenno.TButton", font=("Arial", 7)) 
+
+    #Boton para poner fecha automaticamente
+    self.btnAuto = ttk.Button(self.frm1)
+    self.btnAuto.configure(text='Auto', command= self.Auto, style="TextoPequenno.TButton")
+    self.btnAuto.place(anchor="nw", height=22,width=37, x=470, y=170)
 
     #Separador
     self.separador2 = ttk.Separator(self.frm1)
     self.separador2.configure(orient="horizontal")
     self.separador2.place(anchor="nw", width=800, x=0, y=220)
-
 
     #tablaTreeView
     self.style=ttk.Style()
@@ -235,7 +256,7 @@ class Inventario:
   #Fución de manejo de eventos del sistema
   def run(self):
       self.mainwindow.mainloop()
-
+  
   ''' ......... Métodos utilitarios del sistema .............'''
   #Rutina de centrado de pantalla
   def centra(self,win,ancho,alto): 
@@ -246,48 +267,11 @@ class Inventario:
       win.deiconify() # Se usa para restaurar la ventana
 
  # Validaciones del sistema
-  def validaIdNit(self, event):
-    ''' Valida que la longitud no sea mayor a 15 caracteres'''
-    if event.char:
-      if len(self.idNit.get()) > 15:
-        mssg.showwarning('NIT de proveedor.','La longitud máxima de la cadena es de 15 caracteres.')
-        self.idNit.delete(15)
-
-  def validaCodigo(self, event):
-    ''' Valida que la longitud no sea mayor a 15 caracteres'''
-    if event.char:
-      if len(self.codigo.get()) > 15:
-        mssg.showwarning('Código de producto.','La longitud máxima de la cadena es de 15 caracteres.')
-        self.codigo.delete(15)
-
-  def validaRS(self, event):
-    ''' Valida que la longitud no sea mayor a 50 caracteres'''
-    if event.char:
-      if len(self.razonSocial.get()) > 50:
-        mssg.showwarning('Razón social.','La longitud máxima de la cadena es de 50 caracteres.')
-        self.razonSocial.delete(50)
-
-  def validaCiudad(self, event):
-    ''' Valida que la longitud no sea mayor a 50 caracteres'''
-    if event.char:
-      if len(self.ciudad.get()) > 50:
-        mssg.showwarning('Ciudad.','La longitud máxima de la cadena es de 50 caracteres.')
-        self.ciudad.delete(50)
-
-  def validaDesc(self, event):
-    ''' Valida que la longitud no sea mayor a 100 caracteres'''
-    if event.char:
-      if len(self.descripcion.get()) > 100:
-        mssg.showwarning('Descripción del producto.','La longitud máxima de la cadena es de 100 caracteres.')
-        self.descripcion.delete(100)
-
-  def validaUnd(self, event):
-    ''' Valida que la longitud no sea mayor a 10 caracteres'''
-    if event.char:
-      if len(self.unidad.get()) > 10:
-        mssg.showwarning('Unidad.','La longitud máxima de la cadena es de 10 caracteres.')
-        self.unidad.delete(10)
-
+  def validaVarChar(self, event, widget, largo):
+    if event.char and len(widget.get()) > largo:
+      mssg.showwarning('Error.',  f'La longitud máxima de la cadena es de {largo} caracteres.')
+      widget.delete(largo, "end")
+  
 # Función para validar fecha
   def vFecha(self, fecha):
     ''' Valida si la fecha ingresada es correcta de acuerdo al calendario gregoriano.
@@ -381,8 +365,15 @@ class Inventario:
       self.precio.delete(0,'end')
       self.fecha.delete(0,'end')
 
+  #Funcion para colocar fecha automaticamente
+  def Auto(self):
+    if self.Auto:
+      self.Auto = True
+      self.fecha.delete(0, 'end')
+      self.fecha.insert(-1, str(datetime.today().strftime('%d/%m/%Y')))
+
   #Función para buscar los productos de un proveedor
-  def buscar(self):
+  def buscar(self, event = None):
     '''Función para buscar los productos de un proveedor'''
     idN = self.idNit.get()
     if idN == "":
@@ -502,6 +493,9 @@ class Inventario:
                 mprod = True
               cprov = False
               if idN != row[0]: cprov = True
+              #Validación si existe un producto idéntico
+              if (not mprod )and (not mprov):
+                mssg.showerror(None, "Ya existe un producto idéntico a este")
               #Validación si hay que modificar proveedor y producto
               if (mprod and mprov):
                 if cprov:
@@ -532,6 +526,8 @@ class Inventario:
                   r = self.run_Query("update Proveedor set(Razon_Social, Ciudad) = (?,?) where idNitProv = ?;", (rs, c, idN))
                   if r.rowcount > 0:
                     mssg.showinfo(None,"Información modificada exitosamente.")
+            else:
+              mssg.showwarning("Repita")
           else:
             #Validación en caso de que no haya ingresado NIT de proveedor
             mssg.showwarning("Operación inconsistente.","No se puede tener un producto que no esté referenciado a un proveedor.")
@@ -644,6 +640,7 @@ class Inventario:
     self.btnGrabar.config(state = "enabled")
     self.btnEditar.config(state = "enabled")
     self.btnEliminar.config(state = "enabled")
+    self.btnAuto.config(state = "enabled")
     if self.actualiza:
       self.actualiza = False
       mssg.showinfo("Edición de datos.", "Edición de datos cancelada.")
@@ -669,6 +666,7 @@ class Inventario:
     self.btnGrabar.config(state = "disabled")
     self.btnEditar.config(state = "disabled")
     self.btnEliminar.config(state = "disabled")
+    self.btnAuto.config(state = "disabled")
 
   #Rutina para cargar los datos en el árbol  
   def carga_Datos(self):
@@ -676,6 +674,13 @@ class Inventario:
     self.idNit.configure(state = 'readonly')
     self.razonSocial.insert(0,self.treeProductos.item(self.treeProductos.selection())['values'][0])
     self.unidad.insert(0,self.treeProductos.item(self.treeProductos.selection())['values'][3])
+
+  #Rutina para actualizar la lista de los proveedores
+  def actualizarProveedores(self):
+    db_rows = self.run_Query("Select IdNitProv from Proveedor")
+    for row in db_rows:
+      self.proveedores.append(row[0])
+
 
   # Operaciones con la base de datos
   def run_Query(self, query, parametros = ()):
