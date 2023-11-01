@@ -13,6 +13,7 @@ if platform.system() == "Linux":
 class Inventario:  
   def __init__(self, master=None):
     self.path = path.dirname(path.abspath(__file__))
+    #self.path = r'X:/Users/ferna/Documents/UNal/Alumnos/2023_S2/ProyInventario'
     self.db_name = self.path + r'/Inventario.db'
     ancho=830;alto=630 # Dimensiones de la pantalla
     self.actualiza = False
