@@ -66,6 +66,7 @@ class Inventario:
     self.idNit.place(anchor="nw", x=50, y=40)
     self.idNit.configure(takefocus=True)
     self.idNit.bind("<<ComboboxSelected>>", self.buscar)
+    self.idNit.bind("<<ComboboxSelected>>", self.updateProvider, add = "+")
     self.idNit.bind("<KeyRelease>", lambda event, widget = self.idNit, largo = 15 : self.validaVarChar(event, widget, largo), add="+")
     self.idNit.bind("<KeyRelease>", self.updateProvider, add="+")
 
@@ -318,6 +319,7 @@ class Inventario:
   def updateProvider(self, event):
     '''Función que actualiza los campos relativos al proveedor
     en caso de digitar un NIT existente en su respectivo campo.'''
+    print('actualizando info proveedor')
     try:
       r = self.run_Query("Select * from Proveedor where IdNitProv = ?;", (self.idNit.get(),))
     except Exception as e:
