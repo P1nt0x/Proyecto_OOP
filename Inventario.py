@@ -32,6 +32,7 @@ class Inventario:
       self.win.wm_iconphoto(True, pho)
     self.win.resizable(False, False)
     self.win.title("Manejo de Proveedores") 
+    #self.win.after(0,self.limpiaCampos)
 
     #Centra la pantalla
     self.centra(self.win,ancho,alto)
@@ -319,7 +320,6 @@ class Inventario:
   def updateProvider(self, event):
     '''Función que actualiza los campos relativos al proveedor
     en caso de digitar un NIT existente en su respectivo campo.'''
-    print('actualizando info proveedor')
     try:
       r = self.run_Query("Select * from Proveedor where IdNitProv = ?;", (self.idNit.get(),))
     except Exception as e:
@@ -354,19 +354,21 @@ class Inventario:
       self.fecha.insert(0,r[6])
 
   #Rutina de limpieza de datos
+  def limpiaCamposProductos(self):
+    self.codigo.delete(0,'end')
+    self.descripcion.delete(0,'end')
+    self.unidad.delete(0,'end')
+    self.cantidad.delete(0,'end')
+    self.precio.delete(0,'end')
+    self.fecha.delete(0,'end')
+
   def limpiaCampos(self):
       ''' Limpia todos los campos de captura'''
       if self.actualiza or self.elimina: self.cancelar()
       self.idNit.delete(0,'end')
       self.razonSocial.delete(0,'end')
       self.ciudad.delete(0,'end')
-      self.idNit.delete(0,'end')
-      self.codigo.delete(0,'end')
-      self.descripcion.delete(0,'end')
-      self.unidad.delete(0,'end')
-      self.cantidad.delete(0,'end')
-      self.precio.delete(0,'end')
-      self.fecha.delete(0,'end')
+      self.limpiaCamposProductos()
 
   #Funcion para colocar fecha automaticamente
   def Auto(self):
@@ -392,7 +394,7 @@ class Inventario:
       # Insertando los datos de la BD en treeProductos de la pantalla
       row = None
       for row in r:
-        self.treeProductos.insert('',0, text = row[0], values = [row[4],row[5],row[6],int(row[7]),row[8],row[9]])
+        self.treeProductos.insert('',0, text = row[0], values = [row[4],row[5],row[6],(row[7]),row[8],row[9]])
 
   #Función para gurdar o modificar datos en la base de datos.
   def grabar(self):
@@ -564,6 +566,9 @@ class Inventario:
         o que borra los datos del registro del TreeRow seleccionado de la base de datos en caso de modo de eliminación.'''
     if self.actualiza:
       row = self.treeProductos.focus()
+      if row == '':
+        return 
+      print("row = ", row)
       data = self.treeProductos.item(row, "values")
       data0 = self.treeProductos.item(row, "text")
       self.actualiza = False
@@ -587,6 +592,9 @@ class Inventario:
       self.precio.insert(0,data[4])
       self.fecha.insert(0,data[5])
     if self.elimina:
+      row = self.treeProductos.focus()
+      if row == '':
+        return
       self.elimina = False
       self.idNit.config(state = "enabled")
       self.razonSocial.config(state = "enabled")
@@ -601,7 +609,6 @@ class Inventario:
       self.btnGrabar.config(state = "enabled")
       self.btnEditar.config(state = "enabled")
       self.btnEliminar.config(state = "enabled")
-      row = self.treeProductos.focus()
       data0 = self.treeProductos.item(row, "text")
       data = self.treeProductos.item(row, "values")
       try:
@@ -613,6 +620,7 @@ class Inventario:
               r = self.run_Query("delete from Proveedor where IdNitProv = ?;", (data0,))
               if r.rowcount > 0:
                 mssg.showinfo("Eliminación exitosa.", "Este proveedor y todos sus productos fueron borrados exitosamente.")
+                self.actualizarProveedores()
                 self.lee_treeProductos()
             else:
               self.buscar()
@@ -622,6 +630,7 @@ class Inventario:
             r = self.run_Query("delete from Proveedor where IdNitProv = ?;", (data0,))
             if r.rowcount > 0:
               mssg.showinfo("Eliminación exitosa.", "Este proveedor y todos sus productos fueron borrados exitosamente.")
+              self.actualizarProveedores()
               self.lee_treeProductos()
       except Exception as e:
         mssg.showerror("Error en la base de datos.", f"Error {type(e)}: {e}")
@@ -681,6 +690,7 @@ class Inventario:
   #Rutina para actualizar la lista de los proveedores
   def actualizarProveedores(self):
     db_rows = self.run_Query("Select IdNitProv from Proveedor")
+    self.proveedores.clear()
     for row in db_rows:
       self.proveedores.append(row[0])
 
@@ -711,11 +721,11 @@ class Inventario:
     # Insertando los datos de la BD en treeProductos de la pantalla
     row = None
     for row in db_rows:
-      self.treeProductos.insert('',0, text = row[0], values = [row[4],row[5],row[6],int(row[7]),row[8],row[9]])
+      self.treeProductos.insert('',0, text = row[0], values = [row[4],row[5],row[6],(row[7]),row[8],row[9]])
 
     ''' Al final del for row queda con la última tupla
         y se usan para cargar las variables de captura
-    '''
+    
     if row != None:
       self.idNit.delete(0,"end")
       self.idNit.insert(0,row[0])
@@ -735,6 +745,7 @@ class Inventario:
       self.precio.insert(0,row[8])
       self.fecha.delete(0,"end")
       self.fecha.insert(0,row[9])  
+      '''
 
 if __name__ == "__main__":
     app = Inventario()
