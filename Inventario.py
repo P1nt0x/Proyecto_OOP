@@ -568,7 +568,6 @@ class Inventario:
       row = self.treeProductos.focus()
       if row == '':
         return 
-      print("row = ", row)
       data = self.treeProductos.item(row, "values")
       data0 = self.treeProductos.item(row, "text")
       self.actualiza = False
