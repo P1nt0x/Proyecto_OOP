@@ -13,12 +13,10 @@ if platform.system() == "Linux":
 class Inventario:  
   def __init__(self, master=None):
     self.path = path.dirname(path.abspath(__file__))
-    #self.path = r'X:/Users/ferna/Documents/UNal/Alumnos/2023_S2/ProyInventario'
     self.db_name = self.path + r'/Inventario.db'
     ancho=830;alto=630 # Dimensiones de la pantalla
     self.actualiza = False
     self.elimina = False
-    self.proveedores = [] 
 
     # Crea ventana principal
     self.win = tk.Tk() 
@@ -32,7 +30,7 @@ class Inventario:
       self.win.wm_iconphoto(True, pho)
     self.win.resizable(False, False)
     self.win.title("Manejo de Proveedores") 
-    #self.win.after(0,self.limpiaCampos)
+    self.win.protocol("WM_DELETE_WINDOW", self.cierre)  #Se encarga de llamar la funcion de confirmacion cuando se intente cerrar la ventana
 
     #Centra la pantalla
     self.centra(self.win,ancho,alto)
@@ -52,24 +50,14 @@ class Inventario:
     self.lblIdNit = ttk.Label(self.frm1)
     self.lblIdNit.configure(text='Id/Nit', width=6)
     self.lblIdNit.place(anchor="nw", x=10, y=40)
-
-    #Captura IdNit del Proveedor
-    #self.idNit = ttk.Entry(self.frm1)
-    #self.idNit.configure(takefocus=True)
-    #self.idNit.place(anchor="nw", x=50, y=40)
-    #self.idNit.bind("<KeyRelease>", self.validaIdNit, add="+")
-    #self.idNit.bind("<KeyRelease>", self.updateProvider, add="+")
-    #self.idNit.bind("<BackSpace>", lambda _:self.idNit.delete(len(self.idNit.get())),'end')
     
-
-    self.actualizarProveedores()
-    self.idNit = ttk.Combobox(self.frm1, values=self.proveedores)
+    #Captura IdNit del Proveedor y sugiere proveedores existentes
+    self.idNit = ttk.Combobox(self.frm1, postcommand = self.actualizarProveedores)
     self.idNit.place(anchor="nw", x=50, y=40)
     self.idNit.configure(takefocus=True)
     self.idNit.bind("<<ComboboxSelected>>", self.buscar)
-    self.idNit.bind("<<ComboboxSelected>>", self.updateProvider, add = "+")
     self.idNit.bind("<KeyRelease>", lambda event, widget = self.idNit, largo = 15 : self.validaVarChar(event, widget, largo), add="+")
-    self.idNit.bind("<KeyRelease>", self.updateProvider, add="+")
+    self.idNit.bind("<KeyRelease>", self.updateProvider, add="+") 
 
     #Etiqueta razón social del Proveedor
     self.lblRazonSocial = ttk.Label(self.frm1)
@@ -157,9 +145,13 @@ class Inventario:
     self.lblFecha.place(anchor="nw", x=340, y=170)
 
     #Captura la fecha de compra del Producto
-    self.fecha = ttk.Entry(self.frm1)
+    self.fecha = ttk.Entry(self.frm1, foreground="gray")
     self.fecha.configure(width=11)
     self.fecha.place(anchor="nw", x=380, y=170)
+    self.fecha.insert(0, "dd/mm/aaaa")
+    self.fecha.bind("<KeyRelease>", self.autocompletadoFecha)
+    self.fecha.bind("<FocusIn>", self.entradaDatos)
+    self.fecha.bind("<FocusOut>", self.salidaDatos)
 
     #Estilo para configurar el tamaño del boton "Auto"
     TextoPequenno = ttk.Style()
@@ -269,15 +261,15 @@ class Inventario:
       win.geometry(f'{ancho}x{alto}+{x}+{y}') 
       win.deiconify() # Se usa para restaurar la ventana
 
- # Validaciones del sistema
-  def validaVarChar(self, event, widget, largo):
-    if event.char and len(widget.get()) > largo:
+ # Validaciones de  sistema
+  def validaVarChar(event, self, widget, largo):
+    if len(widget.get()) > largo: #Antes habia un "event.char and" antes del len(widget.get), aparentemente "event.char" siempre tomaba el valor de False, seguramente borre algo impotante pero funciona
       mssg.showwarning('Error.',  f'La longitud máxima de la cadena es de {largo} caracteres.')
-      widget.delete(largo, "end")
+      widget.delete(largo, 'end')
   
 # Función para validar fecha
   def vFecha(self, fecha):
-    ''' Valida si la fecha ingresada es correcta de acuerdo al calendario gregoriano.
+    ''' Valida si la fecha ingresada es correcta de acuerdo al calendario gregoriano, ademas revisa con que no sea una fecha futura.
     Retorna True si esta es válida o False en cualquier otro caso. '''
     diasMes = {1:31,2:28,3:31,4:30,5:31,6:30,7:31,8:31,9:30,10:31,11:30,12:31}  #Dias por mes
     cSlashes = 0    #Cantidad de slashes en la entrada
@@ -303,6 +295,13 @@ class Inventario:
                 return False     
         except: #Se ejecuta si el año ingresado no se puede convertir directamente
             return False
+        #Los siguientes if's revisan que la fecha no sea del futuro
+        if ano > int(datetime.today().strftime('%Y')):
+          return False
+        elif mes > int(datetime.today().strftime('%m')):
+          return False
+        elif dia > int(datetime.today().strftime('%d')):
+          return False
         if mes > 12 or mes < 1 or dia < 1 or mes != 2 and diasMes[mes] < dia:   #Valida si los números ingresados en la fecha son válidos excepto para febrero
             return False
         if mes == 2:    #Valida si el mes es febrero
@@ -354,21 +353,20 @@ class Inventario:
       self.fecha.insert(0,r[6])
 
   #Rutina de limpieza de datos
-  def limpiaCamposProductos(self):
-    self.codigo.delete(0,'end')
-    self.descripcion.delete(0,'end')
-    self.unidad.delete(0,'end')
-    self.cantidad.delete(0,'end')
-    self.precio.delete(0,'end')
-    self.fecha.delete(0,'end')
-
   def limpiaCampos(self):
       ''' Limpia todos los campos de captura'''
       if self.actualiza or self.elimina: self.cancelar()
       self.idNit.delete(0,'end')
       self.razonSocial.delete(0,'end')
       self.ciudad.delete(0,'end')
-      self.limpiaCamposProductos()
+      self.idNit.delete(0,'end')
+      self.codigo.delete(0,'end')
+      self.descripcion.delete(0,'end')
+      self.unidad.delete(0,'end')
+      self.cantidad.delete(0,'end')
+      self.precio.delete(0,'end')
+      self.fecha.delete(0,'end')
+      self.salidaDatos(None) #Notaran que toma  un None como parametro, no tengo idea de como funciona, solo le di Tab al autocompletado,, supongo que es porque esta programaado como un evento
 
   #Funcion para colocar fecha automaticamente
   def Auto(self):
@@ -376,6 +374,7 @@ class Inventario:
       self.Auto = True
       self.fecha.delete(0, 'end')
       self.fecha.insert(-1, str(datetime.today().strftime('%d/%m/%Y')))
+      self.fecha.config(foreground="black") #Esto es poqrue el campo de texto debe esta definido como default en gris para poner el placeholder, dd/mm/aaaa, tonces lo cambia
 
   #Función para buscar los productos de un proveedor
   def buscar(self, event = None):
@@ -394,7 +393,8 @@ class Inventario:
       # Insertando los datos de la BD en treeProductos de la pantalla
       row = None
       for row in r:
-        self.treeProductos.insert('',0, text = row[0], values = [row[4],row[5],row[6],(row[7]),row[8],row[9]])
+        if row[7] == '': row[7] = 0
+        self.treeProductos.insert('',0, text = row[0], values = [row[4],row[5],row[6],int(row[7]),row[8],row[9]])
 
   #Función para gurdar o modificar datos en la base de datos.
   def grabar(self):
@@ -408,6 +408,7 @@ class Inventario:
       self.btnBuscar.config(state = "enabled")
       self.btnEditar.config(state = "enabled")
       self.btnEliminar.config(state = "enabled")
+      self.btnAuto.config(state = "enabled")
     errorMessage = ""
     idN = self.idNit.get()
     rs = self.razonSocial.get()
@@ -558,6 +559,7 @@ class Inventario:
     self.btnGrabar.config(state = "disabled")
     self.btnEditar.config(state = "disabled")
     self.btnEliminar.config(state = "disabled")
+    self.btnAuto.config(state = "disabled")
   
   #Función que carga datos del registro seleccionado del TreeRow para ser modificados en caso de modo de edición
   # o que borra los datos del registro del TreeRow seleccionado de la base de datos en caso de modo de eliminación.
@@ -566,8 +568,6 @@ class Inventario:
         o que borra los datos del registro del TreeRow seleccionado de la base de datos en caso de modo de eliminación.'''
     if self.actualiza:
       row = self.treeProductos.focus()
-      if row == '':
-        return 
       data = self.treeProductos.item(row, "values")
       data0 = self.treeProductos.item(row, "text")
       self.actualiza = False
@@ -579,6 +579,7 @@ class Inventario:
       self.precio.config(state = "enabled")
       self.fecha.config(state = "enabled")
       self.btnGrabar.config(state = "enabled")
+      self.btnAuto.config(state = "enabled")
       self.limpiaCampos()
       self.actualiza = True
       self.idNit.insert(0,data0)
@@ -589,11 +590,10 @@ class Inventario:
       self.unidad.insert(0,data[2])
       self.cantidad.insert(0,data[3])
       self.precio.insert(0,data[4])
+      self.fecha.delete(0, 'end')
+      self.fecha.config(foreground="black")
       self.fecha.insert(0,data[5])
     if self.elimina:
-      row = self.treeProductos.focus()
-      if row == '':
-        return
       self.elimina = False
       self.idNit.config(state = "enabled")
       self.razonSocial.config(state = "enabled")
@@ -608,6 +608,8 @@ class Inventario:
       self.btnGrabar.config(state = "enabled")
       self.btnEditar.config(state = "enabled")
       self.btnEliminar.config(state = "enabled")
+      self.Auto.config(state = "enabled")
+      row = self.treeProductos.focus()
       data0 = self.treeProductos.item(row, "text")
       data = self.treeProductos.item(row, "values")
       try:
@@ -619,7 +621,6 @@ class Inventario:
               r = self.run_Query("delete from Proveedor where IdNitProv = ?;", (data0,))
               if r.rowcount > 0:
                 mssg.showinfo("Eliminación exitosa.", "Este proveedor y todos sus productos fueron borrados exitosamente.")
-                self.actualizarProveedores()
                 self.lee_treeProductos()
             else:
               self.buscar()
@@ -629,7 +630,6 @@ class Inventario:
             r = self.run_Query("delete from Proveedor where IdNitProv = ?;", (data0,))
             if r.rowcount > 0:
               mssg.showinfo("Eliminación exitosa.", "Este proveedor y todos sus productos fueron borrados exitosamente.")
-              self.actualizarProveedores()
               self.lee_treeProductos()
       except Exception as e:
         mssg.showerror("Error en la base de datos.", f"Error {type(e)}: {e}")
@@ -688,11 +688,45 @@ class Inventario:
 
   #Rutina para actualizar la lista de los proveedores
   def actualizarProveedores(self):
-    db_rows = self.run_Query("Select IdNitProv from Proveedor")
-    self.proveedores.clear()
-    for row in db_rows:
-      self.proveedores.append(row[0])
+    consulta = f"SELECT IdNitProv FROM Proveedor WHERE IdNitProv LIKE '%{self.idNit.get()}%'"
+    resultados = self.run_Query(consulta)
+    self.idNit['values'] = [row[0] for row in resultados]
+      
+  #Funcion que escribe automaticamente los "/" en la fecha    
+  def autocompletadoFecha(self, event):
+    Fe = self.fecha.get()
+    if (len(Fe) == 2 or len(Fe) == 5): 
+        Fe += "/"
+        self.fecha.delete(0, 'end')  # Borra el contenido actual del Entry
+        self.fecha.insert('end', Fe) # Y reescribe
+    self.validaVarChar(event, self.fecha, 10) #Como la fecha requiere mas validaciones, entonces inclui la del varchar en la de poner los "/"
+    if (len(Fe) == 3 or len(Fe) == 6) and event.keysym == "BackSpace": #El event.keysym revisa si la tecla que se presiono fue el backspace, si lo fue permite borrar el "/" sin ponerlo infinitamente
+        Fe = Fe[:-1]
+        self.fecha.delete(0, 'end')  # Borra el contenido actual del Entry
+        self.fecha.insert('end', Fe)
+    if (len(Fe) == 3 or len(Fe) == 6) and Fe[-1] != "/": #El event.keysym revisa si la tecla que se presiono fue el backspace, si lo fue permite borrar el "/" sin ponerlo infinitamente
+        Fe = Fe[:-1] + "/" + Fe[-1:]
+        self.fecha.delete(0, 'end')  # Borra el contenido actual del Entry
+        self.fecha.insert('end', Fe)
+  
+  #Funcion que borra el placeholder de la fecha cuando entra en focus
+  def entradaDatos(self, event):
+    if self.fecha.get() == "dd/mm/aaaa":
+        self.fecha.delete(0, 'end')
+        self.fecha.config(foreground="black")
 
+  #Funcion que reescribe el placeholder de la fecha, si el campo de la fecha no esta en focus, revisa si esta vacio y vuelve a escribir el "Placeholder"
+  def salidaDatos(self, event):
+    if self.fecha.get() == "":
+        self.fecha.insert(0, "dd/mm/aaaa")
+        self.fecha.config(foreground="gray")
+
+  def validacionTipoDato(event, P, widget):
+    if widget == self.fecha:
+      for c in P:
+          if not (c.isdigit() or c == '/'):
+            return False
+      return True
 
   # Operaciones con la base de datos
   def run_Query(self, query, parametros = ()):
@@ -720,31 +754,35 @@ class Inventario:
     # Insertando los datos de la BD en treeProductos de la pantalla
     row = None
     for row in db_rows:
-      self.treeProductos.insert('',0, text = row[0], values = [row[4],row[5],row[6],(row[7]),row[8],row[9]])
+      self.treeProductos.insert('',0, text = row[0], values = [row[4],row[5],row[6],int(row[7]),row[8],row[9]])
 
     ''' Al final del for row queda con la última tupla
         y se usan para cargar las variables de captura
-    
-    if row != None:
-      self.idNit.delete(0,"end")
-      self.idNit.insert(0,row[0])
-      self.razonSocial.delete(0,"end")
-      self.razonSocial.insert(0,row[1])
-      self.ciudad.delete(0,"end")
-      self.ciudad.insert(0,row[2])
-      self.codigo.delete(0,"end")
-      self.codigo.insert(0,row[4])
-      self.descripcion.delete(0,"end")
-      self.descripcion.insert(0,row[5])
-      self.unidad.delete(0,"end")
-      self.unidad.insert(0,row[6])
-      self.cantidad.delete(0,"end")
-      self.cantidad.insert(0,int(row[7]))
-      self.precio.delete(0,"end")
-      self.precio.insert(0,row[8])
-      self.fecha.delete(0,"end")
-      self.fecha.insert(0,row[9])  
-      '''
+    '''
+    #if row != None:
+    #  self.idNit.delete(0,"end")
+    #  self.idNit.insert(0,row[0])
+    #  self.razonSocial.delete(0,"end")
+    #  self.razonSocial.insert(0,row[1])
+    #  self.ciudad.delete(0,"end")
+    #  self.ciudad.insert(0,row[2])
+    #  self.codigo.delete(0,"end")
+    #  self.codigo.insert(0,row[4])
+    #  self.descripcion.delete(0,"end")
+    #  self.descripcion.insert(0,row[5])
+    #  self.unidad.delete(0,"end")
+    #  self.unidad.insert(0,row[6])
+    #  self.cantidad.delete(0,"end")
+    #  self.cantidad.insert(0,int(row[7]))
+    #  self.precio.delete(0,"end")
+    #  self.precio.insert(0,row[8])
+    #  self.fecha.delete(0,"end")
+    #  self.fecha.insert(0,row[9])  
+
+  def cierre(self):
+    if mssg.askokcancel('¿Desea cerrar la aplicacion?', 'Todo progreso no guardado se perdera'):
+      self.win.destroy() #Esta linea de codigo pues no es estrictamente necesaria pero primero borra todos los widgets de la ventana antes de cerrarla
+      self.win.quit()
 
 if __name__ == "__main__":
     app = Inventario()
