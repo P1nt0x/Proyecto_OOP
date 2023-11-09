@@ -93,7 +93,6 @@ class Inventario:
     self.codigo = ttk.Entry(self.frm1)
     self.codigo.place(anchor="nw", x=60, y=120)
     self.codigo.bind("<KeyRelease>", lambda event, widget = self.codigo, largo = 15 : self.validaVarChar(event, widget, largo), add="+")
-    self.codigo.bind("<KeyRelease>", self.updateProduct, add="+")
 
     #Etiqueta descripción del Producto
     self.lblDescripcion = ttk.Label(self.frm1)
@@ -567,6 +566,8 @@ class Inventario:
         o que borra los datos del registro del TreeRow seleccionado de la base de datos en caso de modo de eliminación.'''
     if self.actualiza:
       row = self.treeProductos.focus()
+      if row == '':
+        return 
       data = self.treeProductos.item(row, "values")
       data0 = self.treeProductos.item(row, "text")
       self.actualiza = False
@@ -593,6 +594,9 @@ class Inventario:
       self.fecha.config(foreground="black")
       self.fecha.insert(0,data[5])
     if self.elimina:
+      row = self.treeProductos.focus()
+      if row == '':
+        return
       self.elimina = False
       self.idNit.config(state = "enabled")
       self.razonSocial.config(state = "enabled")
