@@ -21,7 +21,7 @@ class Inventario:
     # Crea ventana principal
     self.win = tk.Tk() 
     self.win.geometry(f"{ancho}x{alto}")
-    # Esto detecta cual es el OS y retorna los codigos necesarios para abrir los iconos en Linux y Windows. se probo en Arch Linux x86
+    # Esto detecta cual es el OS y retorna los codigos necesarios para abrir los iconos en Linux y Windows
     if platform.system() == "Windows":
       self.win.iconbitmap(self.path + r'/f2.ico')
     elif platform.system() == "Linux":
@@ -37,8 +37,7 @@ class Inventario:
     
     # Contenedor de widgets   
     self.win = tk.LabelFrame(master)
-    self.win.configure(background="#e0e0e0",font="{Arial} 12 {bold}",
-    height=ancho,labelanchor="n",width=alto)
+    self.win.configure(background="#e0e0e0",font="{Arial} 12 {bold}", height=ancho,labelanchor="n",width=alto)
     self.tabs = ttk.Notebook(self.win)
     self.tabs.configure(height=590, width=799)
 
@@ -261,7 +260,7 @@ class Inventario:
       win.geometry(f'{ancho}x{alto}+{x}+{y}') 
       win.deiconify() # Se usa para restaurar la ventana
 
- # Validaciones de  sistema
+ # Validaciones de longitud del los campos
   def validaVarChar(event, self, widget, largo):
     if len(widget.get()) > largo: #Antes habia un "event.char and" antes del len(widget.get), aparentemente "event.char" siempre tomaba el valor de False, seguramente borre algo impotante pero funciona
       mssg.showwarning('Error.',  f'La longitud máxima de la cadena es de {largo} caracteres.')
@@ -346,7 +345,7 @@ class Inventario:
       self.unidad.delete(0,"end")
       self.unidad.insert(0,r[3])
       self.cantidad.delete(0,"end")
-      self.cantidad.insert(0,int(r[4]))
+      self.cantidad.insert(0,r[4])
       self.precio.delete(0,"end")
       self.precio.insert(0,r[5])
       self.fecha.delete(0,"end")
@@ -393,8 +392,8 @@ class Inventario:
       # Insertando los datos de la BD en treeProductos de la pantalla
       row = None
       for row in r:
-        if row[7] == '': row[7] = 0
-        self.treeProductos.insert('',0, text = row[0], values = [row[4],row[5],row[6],int(row[7]),row[8],row[9]])
+        #if row[7] == '': row[7] = 0
+        self.treeProductos.insert('',0, text = row[0], values = [row[4],row[5],row[6],row[7],row[8],row[9]])
 
   #Función para gurdar o modificar datos en la base de datos.
   def grabar(self):
@@ -429,7 +428,7 @@ class Inventario:
       except:
         errorMessage = errorMessage + "El precio ingresado no es correcto.\n"
     fe = self.fecha.get()
-    if fe != "":
+    if fe != "" and idN == "":  #tiene 2 parametros para poder grabar el proveedor sin fecha
       if not(self.vFecha(fe)):
         errorMessage = errorMessage + "La fecha ingresada no es correcta.\n"
     if len(errorMessage) > 0:
@@ -686,7 +685,7 @@ class Inventario:
     self.razonSocial.insert(0,self.treeProductos.item(self.treeProductos.selection())['values'][0])
     self.unidad.insert(0,self.treeProductos.item(self.treeProductos.selection())['values'][3])
 
-  #Rutina para actualizar la lista de los proveedores
+  #Rutina para actualizar la lista de los proveedores con las coincidencias en la base de datos
   def actualizarProveedores(self):
     consulta = f"SELECT IdNitProv FROM Proveedor WHERE IdNitProv LIKE '%{self.idNit.get()}%'"
     resultados = self.run_Query(consulta)
@@ -698,15 +697,15 @@ class Inventario:
     if (len(Fe) == 2 or len(Fe) == 5): 
         Fe += "/"
         self.fecha.delete(0, 'end')  # Borra el contenido actual del Entry
-        self.fecha.insert('end', Fe) # Y reescribe
+        self.fecha.insert('end', Fe) # Y reescribe para evitar problemas
     self.validaVarChar(event, self.fecha, 10) #Como la fecha requiere mas validaciones, entonces inclui la del varchar en la de poner los "/"
-    if (len(Fe) == 3 or len(Fe) == 6) and event.keysym == "BackSpace": #El event.keysym revisa si la tecla que se presiono fue el backspace, si lo fue permite borrar el "/" sin ponerlo infinitamente
+    if (len(Fe) == 3 or len(Fe) == 6) and event.keysym == "BackSpace": #El event.keysym revisa si la tecla que se presiono fue el backspace, si lo fue borra el "/"  junto con la letra que se deseaba borrar
         Fe = Fe[:-1]
-        self.fecha.delete(0, 'end')  # Borra el contenido actual del Entry
+        self.fecha.delete(0, 'end')  
         self.fecha.insert('end', Fe)
-    if (len(Fe) == 3 or len(Fe) == 6) and Fe[-1] != "/": #El event.keysym revisa si la tecla que se presiono fue el backspace, si lo fue permite borrar el "/" sin ponerlo infinitamente
+    if (len(Fe) == 3 or len(Fe) == 6) and Fe[-1] != "/": #Revisa so hace falta un / en su respectiva posicion y corta el string para meterlo donde deberia
         Fe = Fe[:-1] + "/" + Fe[-1:]
-        self.fecha.delete(0, 'end')  # Borra el contenido actual del Entry
+        self.fecha.delete(0, 'end')  
         self.fecha.insert('end', Fe)
   
   #Funcion que borra el placeholder de la fecha cuando entra en focus
@@ -721,12 +720,11 @@ class Inventario:
         self.fecha.insert(0, "dd/mm/aaaa")
         self.fecha.config(foreground="gray")
 
-  def validacionTipoDato(event, P, widget):
+  def validacionTipoDato(event, widget):
     if widget == self.fecha:
-      for c in P:
-          if not (c.isdigit() or c == '/'):
-            return False
-      return True
+      st = widget.get()
+      if not (st[-1].isdigit):
+        widget.delete(len(st)-1, 'end')
 
   # Operaciones con la base de datos
   def run_Query(self, query, parametros = ()):
@@ -754,7 +752,7 @@ class Inventario:
     # Insertando los datos de la BD en treeProductos de la pantalla
     row = None
     for row in db_rows:
-      self.treeProductos.insert('',0, text = row[0], values = [row[4],row[5],row[6],int(row[7]),row[8],row[9]])
+      self.treeProductos.insert('',0, text = row[0], values = [row[4],row[5],row[6],row[7],row[8],row[9]])
 
     ''' Al final del for row queda con la última tupla
         y se usan para cargar las variables de captura
