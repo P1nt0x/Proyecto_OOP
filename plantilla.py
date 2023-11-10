@@ -345,7 +345,7 @@ class Inventario:
         return True
   #Función que actualiza los campos relativos al proveedor
   # en caso de digitar un NIT existente en su respectivo campo.
-  def updateProvider(self, event):
+  def updateProvider(self, event = None):
     '''Función que actualiza los campos relativos al proveedor
     en caso de digitar un NIT existente en su respectivo campo.'''
     try:
@@ -361,7 +361,7 @@ class Inventario:
 
   #Función que actualiza los campos relativos al producto y a su proveedor
   # en caso de digitar un código de producto existente en su respectivo campo.
-  def updateProduct(self, event):
+  def updateProduct(self, event = None):
     '''Función que actualiza los campos relativos al producto y a su proveedor
     en caso de digitar un código de producto existente en su respectivo campo.'''
     r = self.run_Query("Select * from Inventario where Codigo = ?;", (self.codigo.get(),))
@@ -427,7 +427,6 @@ class Inventario:
 
   #Funciones para gurdar o modificar datos en la base de datos.
   def insertarProveedor(self): # Retorna falso si al final no hay un proveedor con el idNit especificado.
-    print('trying to ins')
     self.change = False # Variable que indica si hubo algun cambio en la base de datos.
     idN = self.idNit.get()
     rs = self.razonSocial.get()
@@ -538,7 +537,7 @@ class Inventario:
     return False
 
   
-  def habilitarCampos(self, proveedor = True, producto = True, BotonesEdicion = True):
+  def habilitarCampos(self, proveedor = True, producto = True, botonesEdicion = True, botonGrabar = True):
     '''Rutina para cambiar el state de las entradas y botones de la interfaz
        Los campos en Falso se deshabilitaran, y los que estan en verdadero se habilitaran
     '''
@@ -554,15 +553,18 @@ class Inventario:
     self.cantidad.config(state =  state)
     self.precio.config(state =  state)
     self.fecha.config(state =  state)
+    self.btnAuto.config(state = state)
 
 
-    state = "enabled" if BotonesEdicion else "disabled"
+    state = "enabled" if botonesEdicion else "disabled"
 
     self.btnBuscar.config(state = state)
     self.btnEditar.config(state = state)
     self.btnEliminar.config(state = state)
 
-
+    state = "enabled" if botonGrabar else "disabled"
+    self.btnGrabar.config(state = state)
+    
   def grabar(self):
     '''Función para gurdar datos en la base de datos.'''
     '''
@@ -579,115 +581,27 @@ class Inventario:
       if self.editarProducto():
         self.actualizaProducto = False
         self.habilitarCampos()
-      return 
-    if self.actualizaProveedor:
+        self.buscar()
+    elif self.actualizaProveedor:
       if self.editarProveedor():
         self.actualizaProveedor = False
         self.habilitarCampos()
-      return 
-      return 
-    
-    return self.insertarProducto()
-    
-
-
-    #Validación cuando se introduce un producto.
-    if cod != "":
-      r = self.run_Query("select * from Inventario where Codigo = ?;",(cod,))
-      if r.fetchone() == None:  
-        #Validación cuando se introduce un producto y un proveedor nuevos      
-        if idN != "":
-          r = self.run_Query("select * from Proveedor where idNitProv = ?;",(idN,))
-          if r.fetchone() == None:
-            r = self.run_Query("insert into Proveedor(idNitProv, Razon_Social, Ciudad) values(?,?,?);",(idN, rs, c))
-            if r.rowcount > 0:
-              r = self.run_Query("insert into Inventario(idNit, Codigo, Descripcion, Und, Cantidad, Precio, Fecha) "
-                                + "values(?,?,?,?,?,?,?);",(idN, cod, des, u, can, pre ,fe))
-              if r.rowcount > 0:
-                mssg.showinfo(None,"Proveedor y producto agregados exitosamente.")
-              else:
-                mssg.showerror("Error en la operación de adición de registros.")
-            else:
-              mssg.showerror("Error en la operación de adición de registro.")
-          else:
-            #Validación cuando el proveedor ya existe
-            r = self.run_Query("insert into Inventario(idNit, Codigo, Descripcion, Und, Cantidad, Precio, Fecha) "
-                                + "values(?,?,?,?,?,?,?);", (idN, cod, des, u, can, pre, fe))
-            if r.rowcount > 0:
-              mssg.showinfo(None,"Producto agregado exitosamente a este proveedor.")
-            else:
-              mssg.showerror("Error en la operación de adición de registro.")
-        else:
-          #Validación en caso de que no haya ingresado NIT de proveedor
-          mssg.showwarning("Operación inconsistente.","No se puede tener un producto que no esté referenciado a un proveedor.")
-      #Validación si el producto ya existe
-      else:
-        #Validación si ingresó un Nit de proveedor
-        if idN != "":
-          r = self.run_Query("select * from Proveedor where idNitProv = ?;",(idN,))
-          mprov = False
-          row = r.fetchone()
-          if row != None:
-            if rs != row[1] or c != row[2]:
-              mprov = True
-            r = self.run_Query("select * from Inventario where Codigo = ?;", (cod,))
-            row = r.fetchone()
-            mprod = False
-            if idN != row[0] or des != row[2] or u != row[3] or float(can) != row[4] or float(pre) != row[5] or fe != row[6]:
-              mprod = True
-            cprov = False
-            if idN != row[0]: cprov = True
-            #Validación si existe un producto idéntico
-            if (not mprod )and (not mprov):
-              mssg.showerror(None, "Ya existe un producto idéntico a este")
-            #Validación si hay que modificar proveedor y producto
-            if (mprod and mprov):
-              if cprov:
-                msg = "¿Desea asociar este producto a este proveedor y simultáneamente modificar los datos de estos dos?"
-              else:
-                msg = "¿Desea modificar los datos del producto y del proveedor simultaneamente?"
-              if mssg.askokcancel("Confirmar modificación.", msg):
-                r = self.run_Query("update Inventario set(IdNit, Descripcion, Und, Cantidad, Precio, Fecha) = "
-                                    + "(?,?,?,?,?,?) where Codigo = ?;", (idN, des, u, can, pre, fe, cod))
-                if r.rowcount > 0:
-                  r = self.run_Query("update Proveedor set(Razon_Social, Ciudad) = (?,?) where idNitProv = ?;", (rs, c, idN))
-                  if r.rowcount > 0:
-                    mssg.showinfo(None,"Información modificada exitosamente.")
-                  else:
-                    mssg.showerror("Error en la operación de modificación de registro.")
-                else:
-                  mssg.showerror("Error en la operación de modificación de registro.") 
-            #Validación de si solamente hay que modificar producto:
-            elif mprod:
-              if mssg.askokcancel("Confirmar modificación.","¿Desea modificar este producto?"):
-                r = self.run_Query("update Inventario set(IdNit, Descripcion, Und, Cantidad, Precio, Fecha) = "
-                                    + "(?,?,?,?,?,?) where Codigo = ?;", (idN, des, u, can, pre, fe, cod))
-                if r.rowcount > 0:
-                  mssg.showinfo(None,"Producto modificado exitosamente.")
-            #Validación se si solamente hay que modificar proveedor
-            elif mprov:
-              if mssg.askokcancel("Confirmar modificación.","¿Desea modificar este Proveedor?"):
-                r = self.run_Query("update Proveedor set(Razon_Social, Ciudad) = (?,?) where idNitProv = ?;", (rs, c, idN))
-                if r.rowcount > 0:
-                  mssg.showinfo(None,"Información modificada exitosamente.")
-          else:
-            mssg.showwarning("Repita")
-        else:
-          #Validación en caso de que no haya ingresado NIT de proveedor
-          mssg.showwarning("Operación inconsistente.","No se puede tener un producto que no esté referenciado a un proveedor.")
-  
-    self.buscar()
+        self.buscar()
+    else:
+      self.insertarProducto()
+      self.buscar()
   
   #Función para habilitar el modo de edición de registros.
   def editar(self):
     '''Función para habilitar el modo de edición de registros.'''
     if self.idNit.get() != '' and mssg.askyesno("Edicion de registro", "Desea editar el proveedor?"):
       self.actualizaProveedor = True
-      self.habilitarCampos(BotonesEdicion=False, producto=False)
+      self.habilitarCampos(botonesEdicion=False, producto=False)
       self.idNit.config(state = "disabled")
     else:
+      mssg.showinfo("Edicion de producto.", "Seleccione el producto cuyos datos desea editar. Para cancelar haga click en el botón cancelar.")
       self.actualizaProducto = True
-      self.habilitarCampos(producto=False, BotonesEdicion=False, proveedor=False)
+      self.habilitarCampos(producto=False, botonesEdicion=False, proveedor=False)
   
   #Función que carga datos del registro seleccionado del TreeRow para ser modificados en caso de modo de edición
   # o que borra los datos del registro del TreeRow seleccionado de la base de datos en caso de modo de eliminación.
@@ -701,90 +615,48 @@ class Inventario:
       data = self.treeProductos.item(row, "values")
       data0 = self.treeProductos.item(row, "text")
       self.actualizaProducto = False
-      self.idNit.config(state = "enabled")
-      self.codigo.config(state = "enabled")
-      self.descripcion.config(state = "enabled")
-      self.unidad.config(state = "enabled")
-      self.cantidad.config(state = "enabled")
-      self.precio.config(state = "enabled")
-      self.fecha.config(state = "enabled")
-      self.btnGrabar.config(state = "enabled")
-      self.btnAuto.config(state = "enabled")
+      self.habilitarCampos(botonesEdicion=False)
+  
       self.limpiaCampos()
       self.actualizaProducto = True
       self.idNit.insert(0,data0)
-      self.idNit.config(state = "disabled")
       self.codigo.insert(0,data[0])
+      self.updateProduct(None)
+      self.updateProvider(None)
+      
+      
+      self.habilitarCampos(proveedor=False, botonesEdicion=False)
       self.codigo.config(state = "disabled")
-      self.descripcion.insert(0,data[1])
-      self.unidad.insert(0,data[2])
-      self.cantidad.insert(0,data[3])
-      self.precio.insert(0,data[4])
       self.fecha.delete(0, 'end')
       self.fecha.config(foreground="black")
       self.fecha.insert(0,data[5])
+
     if self.elimina:
       row = self.treeProductos.focus()
       if row == '':
         return
       self.elimina = False
-      self.idNit.config(state = "enabled")
-      self.razonSocial.config(state = "enabled")
-      self.ciudad.config(state = "enabled")
-      self.codigo.config(state = "enabled")
-      self.descripcion.config(state = "enabled")
-      self.unidad.config(state = "enabled")
-      self.cantidad.config(state = "enabled")
-      self.precio.config(state = "enabled")
-      self.fecha.config(state = "enabled")
-      self.btnBuscar.config(state = "enabled")
-      self.btnGrabar.config(state = "enabled")
-      self.btnEditar.config(state = "enabled")
-      self.btnEliminar.config(state = "enabled")
-      self.Auto.config(state = "enabled")
-      row = self.treeProductos.focus()
-      data0 = self.treeProductos.item(row, "text")
+      self.habilitarCampos()
+
+      idNit = self.treeProductos.item(row, "text")
       data = self.treeProductos.item(row, "values")
       try:
         if mssg.askyesno("Confirmar eliminación.", "¿Desea eliminar este producto de la base de datos?"):
-          r = self.run_Query("delete from Inventario where codigo = ?;", (data[0],))
+          r = self.run_Query("delete from Inventario where IdNit = ? AND codigo = ?;", (idNit, data[0]))
           if r.rowcount > 0:
-            if mssg.askyesno("Confirmar eliminacion.", "¿Desea eliminar también este proveedor y todos sus productos?"):
-              self.run_Query("delete from Inventario where IdNit = ?;", (data0,))
-              r = self.run_Query("delete from Proveedor where IdNitProv = ?;", (data0,))
-              if r.rowcount > 0:
-                mssg.showinfo("Eliminación exitosa.", "Este proveedor y todos sus productos fueron borrados exitosamente.")
-                self.lee_treeProductos()
-            else:
-              self.buscar()
-        else:
-          if mssg.askyesno("Confirmar eliminacion.", "¿Desea eliminar este proveedor y todos sus productos?"):
-            self.run_Query("delete from Inventario where IdNit = ?;", (data0,))
-            r = self.run_Query("delete from Proveedor where IdNitProv = ?;", (data0,))
-            if r.rowcount > 0:
-              mssg.showinfo("Eliminación exitosa.", "Este proveedor y todos sus productos fueron borrados exitosamente.")
-              self.lee_treeProductos()
+            mssg.showinfo("Eliminacion exitosa", "Este producto ha sido eliminado correctamente")
+            self.buscar()
+            self.lee_treeProductos()
+          else:
+            mssg.showinfo("No se ha podido eliminar el producto")
       except Exception as e:
         mssg.showerror("Error en la base de datos.", f"Error {type(e)}: {e}")
       
 
   #función para cancelar edición o eliminación de datos.
   def cancelar(self):  
-    '''función para cancelar edición o eliminación de datos.'''  
-    self.idNit.config(state = "enabled")
-    self.razonSocial.config(state = "enabled")
-    self.ciudad.config(state = "enabled")
-    self.codigo.config(state = "enabled")
-    self.descripcion.config(state = "enabled")
-    self.unidad.config(state = "enabled")
-    self.cantidad.config(state = "enabled")
-    self.precio.config(state = "enabled")
-    self.fecha.config(state = "enabled")
-    self.btnBuscar.config(state = "enabled")
-    self.btnGrabar.config(state = "enabled")
-    self.btnEditar.config(state = "enabled")
-    self.btnEliminar.config(state = "enabled")
-    self.btnAuto.config(state = "enabled")
+    '''función para cancelar edición o eliminación de datos.''' 
+    self.habilitarCampos()
     if self.actualizaProducto or self.actualizaProveedor:
       self.actualizaProducto = False
       self.actualizaProveedor = False
@@ -796,22 +668,25 @@ class Inventario:
   #Función que habilita el modo de eliminación.
   def eliminar(self):
     '''Función que habilita el modo de eliminación.'''
-    self.elimina = True
-    mssg.showinfo("Eliminación de datos.", "Seleccione el registro cuyos datos desea eliminar. Para cancelar haga click en el botón cancelar.")
-    self.idNit.config(state = "disabled")
-    self.razonSocial.config(state = "disabled")
-    self.ciudad.config(state = "disabled")
-    self.codigo.config(state = "disabled")
-    self.descripcion.config(state = "disabled")
-    self.unidad.config(state = "disabled")
-    self.cantidad.config(state = "disabled")
-    self.precio.config(state = "disabled")
-    self.fecha.config(state = "disabled")
-    self.btnBuscar.config(state = "disabled")
-    self.btnGrabar.config(state = "disabled")
-    self.btnEditar.config(state = "disabled")
-    self.btnEliminar.config(state = "disabled")
-    self.btnAuto.config(state = "disabled")
+    if self.idNit.get() != '' and mssg.askyesno("Eliminacion de proveedor", "¿Desea eliminar este proveedor y todos sus productos?") and mssg.askyesno("Eliminacion de proveedor", "¿Esta seguro?\nEsta accion no se puede deshacer."):
+      '''Se quiere eliminar el proveedor y sus productos'''
+      try:
+        self.run_Query("delete from Inventario where IdNit = ?;", (self.idNit.get(), ))
+        r = self.run_Query("delete from Proveedor where IdNitProv = ?;", (self.idNit.get(),))
+        if r.rowcount > 0:
+          mssg.showinfo("Eliminación exitosa.", "Este proveedor y todos sus productos fueron borrados exitosamente.")
+          self.lee_treeProductos()
+          self.limpiaCampos()
+        else:
+          mssg.showerror("Error al eliminar", "Parece ser que no has escogido un proveedor valido.")
+      except Exception as e:
+        mssg.showerror("Error en la base de datos.", f"Error {type(e)}: {e}")
+    else:
+      '''Se quiere eliminar solo un producto'''
+      mssg.showinfo("Eliminación de datos.", "Seleccione el registro cuyos datos desea eliminar. Para cancelar haga click en el botón cancelar.")
+      self.elimina = True
+      self.habilitarCampos(botonesEdicion=False, producto=False, proveedor=False)
+      self.btnGrabar.config(state = "disabled")
 
   #Rutina para cargar los datos en el árbol  
   def carga_Datos(self):
