@@ -426,7 +426,10 @@ class Inventario:
         self.treeProductos.insert('',0, text = row[0], values = [row[4],row[5],row[6],row[7],row[8],row[9]])
 
   #Funciones para gurdar o modificar datos en la base de datos.
-  def insertarProveedor(self): # Retorna falso si al final no hay un proveedor con el idNit especificado.
+  def insertarProveedor(self): 
+    '''Inserta, o en su defecto, verifica que este proveedor ya se encuentre en la base de datos
+       retorna verdadero si al finalizar el procedimiento existe un proveedor con dado idNit.
+    '''
     self.change = False # Variable que indica si hubo algun cambio en la base de datos.
     idN = self.idNit.get()
     rs = self.razonSocial.get()
@@ -448,6 +451,7 @@ class Inventario:
   
 
   def insertarProducto(self):
+    '''Rutina para ingresar el producto en pantalla.'''
     errorMessage = ""
     idN = self.idNit.get()
     rs = self.razonSocial.get()
@@ -495,6 +499,7 @@ class Inventario:
       return False
   
   def editarProducto(self):
+    '''Rutina para editar el producto en pantalla.'''
     idN = self.idNit.get()
     rs = self.razonSocial.get()
     c = self.ciudad.get()
@@ -517,6 +522,7 @@ class Inventario:
       return True
     return False
   def editarProveedor(self):
+    '''Rutina para editar el proveedor ingresado en la pantalla'''
     idN = self.idNit.get()
     rs = self.razonSocial.get()
     c = self.ciudad.get()
@@ -539,7 +545,7 @@ class Inventario:
   
   def habilitarCampos(self, proveedor = True, producto = True, botonesEdicion = True, botonGrabar = True):
     '''Rutina para cambiar el state de las entradas y botones de la interfaz
-       Los campos en Falso se deshabilitaran, y los que estan en verdadero se habilitaran
+       Los campos en Falso se deshabilitaran, y los que estan en verdadero (por defecto) se habilitaran
     '''
     state = "enabled" if proveedor else "disabled"
     self.idNit.config(state = state)
@@ -566,17 +572,7 @@ class Inventario:
     self.btnGrabar.config(state = state)
     
   def grabar(self):
-    '''Función para gurdar datos en la base de datos.'''
-    '''
-    self.idNit.config(state = "enabled")
-    self.razonSocial.config(state = "enabled")
-    self.ciudad.config(state = "enabled")
-    self.codigo.config(state = "enabled")
-    self.btnBuscar.config(state = "enabled")
-    self.btnEditar.config(state = "enabled")
-    self.btnEliminar.config(state = "enabled")
-    self.btnAuto.config(state = "enabled")
-    '''
+    '''Función para guardar datos en la base de datos. Si esta en edicion, hace lo correspondiente'''
     if self.actualizaProducto:
       if self.editarProducto():
         self.actualizaProducto = False
@@ -730,7 +726,7 @@ class Inventario:
         self.fecha.insert(0, "dd/mm/aaaa")
         self.fecha.config(foreground="gray")
 
-  def validacionTipoDato(event, widget):
+  def validacionTipoDato(self, event, widget):
     if widget == self.fecha:
       st = widget.get()
       if not (st[-1].isdigit):
