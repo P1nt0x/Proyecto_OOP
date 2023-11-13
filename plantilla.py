@@ -7,6 +7,7 @@ from tkinter import messagebox as mssg
 import sqlite3
 import platform #para determinar el OS
 from datetime import datetime
+import re
 if platform.system() == "Linux":  
   from PIL import Image, ImageTk
 
@@ -129,6 +130,7 @@ class Inventario:
     self.cantidad = ttk.Entry(self.frm1)
     self.cantidad.configure(width=12)
     self.cantidad.place(anchor="nw", x=70, y=170)
+    self.cantidad.bind("<KeyRelease>", lambda event, widget = self.cantidad, largo = 10 : self.validaVarCharNum(event, widget, largo))
 
     #Etiqueta precio del Producto
     self.lblPrecio = ttk.Label(self.frm1)
@@ -139,6 +141,7 @@ class Inventario:
     self.precio = ttk.Entry(self.frm1)
     self.precio.configure(width=15)
     self.precio.place(anchor="nw", x=220, y=170)
+    self.precio.bind("<KeyRelease>", lambda event, widget = self.precio, largo = 15 : self.validaVarCharNumPre(event, widget, largo))
 
     #Etiqueta fecha de compra del Producto
     self.lblFecha = ttk.Label(self.frm1)
@@ -150,7 +153,7 @@ class Inventario:
     self.fecha.configure(width=11)
     self.fecha.place(anchor="nw", x=380, y=170)
     self.fecha.insert(0, "dd/mm/aaaa")
-    self.fecha.bind("<KeyRelease>", self.autocompletadoFecha)
+    self.fecha.bind("<KeyRelease>", lambda event, widget = self.fecha, largo = 10 : self.validaVarCharFe(event, widget, largo))
     self.fecha.bind("<FocusIn>", self.entradaDatos)
     self.fecha.bind("<FocusOut>", self.salidaDatos)
 
@@ -263,7 +266,91 @@ class Inventario:
       win.deiconify() # Se usa para restaurar la ventana
 
  # Validaciones de longitud del los campos
-  def validaVarChar(event, self, widget, largo):
+  def validaVarChar(self, event, widget, largo):
+    if len(widget.get()) > largo: #Antes habia un "event.char and" antes del len(widget.get), aparentemente "event.char" siempre tomaba el valor de False, seguramente borre algo impotante pero funciona
+      mssg.showwarning('Error.',  f'La longitud máxima de la cadena es de {largo} caracteres.')
+      widget.delete(largo, 'end')
+
+  def validaVarCharNum(self, event, widget, largo):    
+    if event.keysym not in ["BackSpace","Up","Down","Left","Right","0","1","2","3","4","5","6","7","8","9"]:
+      text = widget.get()
+      p = re.compile(r"([^\d])")
+      widget.delete(0, "end")
+      widget.insert(0,p.sub("",text))
+    if len(widget.get()) > largo: #Antes habia un "event.char and" antes del len(widget.get), aparentemente "event.char" siempre tomaba el valor de False, seguramente borre algo impotante pero funciona
+      mssg.showwarning('Error.',  f'La longitud máxima de la cadena es de {largo} caracteres.')
+      widget.delete(largo, 'end')      
+
+  def validaVarCharNumPre(self, event, widget, largo):    
+    if event.keysym not in ["BackSpace","Up","Down","Left","Right","0","1","2","3","4","5","6","7","8","9"]:
+      text = widget.get()
+      p = re.compile(r"([^\d])")
+      p2  = re.compile(r"([^\d\.])")
+      widget.delete(0, "end")
+      if len(text.split(r".")) > 2:
+        widget.insert(0,p.sub("",text))
+      else:
+        widget.insert(0,p2.sub("",text))
+    if len(widget.get()) > largo: #Antes habia un "event.char and" antes del len(widget.get), aparentemente "event.char" siempre tomaba el valor de False, seguramente borre algo impotante pero funciona
+      mssg.showwarning('Error.',  f'La longitud máxima de la cadena es de {largo} caracteres.')
+      widget.delete(largo, 'end')
+
+  def validaVarCharFe(self, event, widget, largo):   
+    p = re.compile(r"([^\d/])")
+    oLen = len(widget.get())
+    text = p.sub("", widget.get())
+    uEntry = False
+    if oLen != len(text): uEntry = True
+    p2 = re.compile(r"(/)")     
+    addSlash = False
+    if event.keysym != "BackSpace":
+      if len(text) == 1 and len(re.findall(p2,text)) == 0:
+        if int(text) > 3: addSlash = True
+      if len(text) == 2 and len(re.findall(p2,text)) == 0:
+        addSlash = True
+      elif len(text) == 3:
+        addSlash = True
+        terms = text.split("/")
+        if len(terms) == 2:
+          for term in terms:
+            if term < "0" or term > "9":
+              addSlash = False
+          if addSlash == True:
+            if int(terms[1]) < 2:
+              addSlash = False
+        else:
+          addSlash = False
+      elif len(text) == 4:
+        addSlash = True
+        terms = text.split("/")
+        if len(terms) == 2:
+          if len(terms[0]) > 2:
+            addSlash = False
+          if len(terms[1]) > 2:
+            addSlash = False
+          elif len(terms[1]) == 1:
+            if int(terms[1]) < 2: addSlash = False 
+        else:
+          addSlash = False   
+      elif len(text) == 5:        
+        addSlash = True
+        terms = text.split("/")
+        if len(terms) == 2:
+          if len(terms[0]) != 2:
+            addSlash = False
+          if len(terms[1]) != 2:
+            addSlash = False
+        else:
+          addSlash = False    
+    if addSlash == True:
+      text = text + "/"
+    if addSlash == True or uEntry == True:
+      widget.delete(0, "end")
+      widget.insert(0, text)
+    terms = text.split("/")
+    if len(terms) == 3:
+      if len(terms[2]) > 4:
+        widget.delete(len(text) - (len(terms[2]) - 4), "end")
     if len(widget.get()) > largo: #Antes habia un "event.char and" antes del len(widget.get), aparentemente "event.char" siempre tomaba el valor de False, seguramente borre algo impotante pero funciona
       mssg.showwarning('Error.',  f'La longitud máxima de la cadena es de {largo} caracteres.')
       widget.delete(largo, 'end')
@@ -474,9 +561,7 @@ class Inventario:
           return False
       
       # Validacion cuando se ingresa un producto
-      if cod == '' or not self.validacionIngresoRegistro():
-        if not self.change:
-          mssg.showwarning("No hay cambios.", "Este proveedor ya esta en la base de datos, y un nuevo producto debe tener un codigo.")
+      if not self.validacionIngresoRegistro():
         return False
       r = self.run_Query("select * from Inventario where Codigo = ? AND IdNit = ?;",(cod,idN))
       if r.fetchone() != None: # Ya existe uno, no se deben duplicar.
