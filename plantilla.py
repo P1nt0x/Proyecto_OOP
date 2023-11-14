@@ -97,6 +97,7 @@ class Inventario:
     self.codigo = ttk.Entry(self.frm1)
     self.codigo.place(anchor="nw", x=60, y=120)
     self.codigo.bind("<KeyRelease>", lambda event, widget = self.codigo, largo = 15 : self.validaVarChar(event, widget, largo), add="+")
+    self.codigo.bind("<KeyRelease>", self.updateProduct, add="+")
 
     #Etiqueta descripción del Producto
     self.lblDescripcion = ttk.Label(self.frm1)
@@ -131,7 +132,7 @@ class Inventario:
     self.cantidad.configure(width=12)
     self.cantidad.place(anchor="nw", x=70, y=170)
     self.cantidad.bind("<KeyRelease>", lambda event, widget = self.cantidad, largo = 10 : self.validaVarCharNum(event, widget, largo))
-  
+
     #Etiqueta precio del Producto
     self.lblPrecio = ttk.Label(self.frm1)
     self.lblPrecio.configure(text='Precio $', width=8)
@@ -275,30 +276,22 @@ class Inventario:
     if event.keysym not in ["BackSpace","Up","Down","Left","Right","0","1","2","3","4","5","6","7","8","9"]:
       text = widget.get()
       p = re.compile(r"([^\d])")
-      n = widget.index(tk.INSERT)
       widget.delete(0, "end")
       widget.insert(0,p.sub("",text))
-      if n > largo: n = largo
-      widget.icursor(n - 1)
     if len(widget.get()) > largo: #Antes habia un "event.char and" antes del len(widget.get), aparentemente "event.char" siempre tomaba el valor de False, seguramente borre algo impotante pero funciona
       mssg.showwarning('Error.',  f'La longitud máxima de la cadena es de {largo} caracteres.')
-      widget.delete(largo, 'end')   
-      
+      widget.delete(largo, 'end')      
+
   def validaVarCharNumPre(self, event, widget, largo):    
     if event.keysym not in ["BackSpace","Up","Down","Left","Right","0","1","2","3","4","5","6","7","8","9"]:
       text = widget.get()
       p = re.compile(r"([^\d])")
       p2  = re.compile(r"([^\d\.])")
-      n = widget.index(tk.INSERT)
       widget.delete(0, "end")
-      if n > largo: n = largo
-      m = len(text.split(r"."))
-      if m > 2:
+      if len(text.split(r".")) > 2:
         widget.insert(0,p.sub("",text))
-        widget.icursor(n - m + 1)
       else:
         widget.insert(0,p2.sub("",text))
-        widget.icursor(n)      
     if len(widget.get()) > largo: #Antes habia un "event.char and" antes del len(widget.get), aparentemente "event.char" siempre tomaba el valor de False, seguramente borre algo impotante pero funciona
       mssg.showwarning('Error.',  f'La longitud máxima de la cadena es de {largo} caracteres.')
       widget.delete(largo, 'end')
@@ -352,18 +345,13 @@ class Inventario:
           addSlash = False    
     if addSlash == True:
       text = text + "/"
-    if uEntry:
-      n = widget.index(tk.INSERT)
-      if n > largo: n = largo
     if addSlash == True or uEntry == True:
       widget.delete(0, "end")
       widget.insert(0, text)
     terms = text.split("/")
-    if uEntry: widget.icursor(n - 1)
     if len(terms) == 3:
       if len(terms[2]) > 4:
         widget.delete(len(text) - (len(terms[2]) - 4), "end")
-        
     if len(widget.get()) > largo: #Antes habia un "event.char and" antes del len(widget.get), aparentemente "event.char" siempre tomaba el valor de False, seguramente borre algo impotante pero funciona
       mssg.showwarning('Error.',  f'La longitud máxima de la cadena es de {largo} caracteres.')
       widget.delete(largo, 'end')
@@ -458,18 +446,21 @@ class Inventario:
       self.razonSocial.insert(0,r[1])
       self.ciudad.delete(0,"end")
       self.ciudad.insert(0,r[2])
+    else:
+      self.razonSocial.delete(0,"end")
+      self.ciudad.delete(0,"end")
 
   #Función que actualiza los campos relativos al producto y a su proveedor
   # en caso de digitar un código de producto existente en su respectivo campo.
   def updateProduct(self, event = None):
     '''Función que actualiza los campos relativos al producto y a su proveedor
     en caso de digitar un código de producto existente en su respectivo campo.'''
-    r = self.run_Query("Select * from Inventario where Codigo = ?;", (self.codigo.get(),))
+    r = self.run_Query("Select * from Inventario where Codigo = ? and IdNit = ?;", (self.codigo.get(), self.idNit.get(),)) #queda poner un and para que no fuerze el primer codigo que encuentre
     r = r.fetchone()
     if r != None:
-      self.idNit.delete(0,"end")
-      self.idNit.insert(0,r[0])
-      self.updateProvider("")
+      #self.idNit.delete(0,"end")
+      #self.idNit.insert(0,r[0])
+      #self.updateProvider("")
       self.descripcion.delete(0,"end")
       self.descripcion.insert(0,r[2])
       self.unidad.delete(0,"end")
@@ -480,7 +471,16 @@ class Inventario:
       self.precio.insert(0,r[5])
       self.fecha.delete(0,"end")
       self.fecha.insert(0,r[6])
-
+      self.fecha.config(foreground="black")
+    else:
+      #self.idNit.delete(0,"end")
+      #self.updateProvider("")
+      self.descripcion.delete(0,"end")
+      self.unidad.delete(0,"end")
+      self.cantidad.delete(0,"end")
+      self.precio.delete(0,"end")
+      self.fecha.delete(0,"end")
+      self.salidaDatos(None)
   #Rutina de limpieza de datos
   def limpiaCampos(self):
       ''' Limpia todos los campos de captura'''
@@ -522,8 +522,12 @@ class Inventario:
       # Insertando los datos de la BD en treeProductos de la pantalla
       row = None
       for row in r:
-        #if row[7] == '': row[7] = 0
+          #if row[7] == '': row[7] = 0
         self.treeProductos.insert('',0, text = row[0], values = [row[4],row[5],row[6],row[7],row[8],row[9]])
+    r = self.run_Query("select * from Proveedor where idNitProv = ?;", (idN,))
+    if r.fetchone() == None:
+      mssg.showerror("Error", "Al parecer, este proveedor no se encuentra en la base de datos")
+      return False
 
   #Funciones para gurdar o modificar datos en la base de datos.
   def insertarProveedor(self): 
@@ -823,12 +827,6 @@ class Inventario:
     if self.fecha.get() == "":
         self.fecha.insert(0, "dd/mm/aaaa")
         self.fecha.config(foreground="gray")
-
-  def validacionTipoDato(self, event, widget):
-    if widget == self.fecha:
-      st = widget.get()
-      if not (st[-1].isdigit):
-        widget.delete(len(st)-1, 'end')
 
   # Operaciones con la base de datos
   def run_Query(self, query, parametros = ()):
