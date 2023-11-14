@@ -8,40 +8,32 @@ import sqlite3
 import platform #para determinar el OS
 from datetime import datetime
 import re
-if platform.system() == 'Linux':
+if platform.system() == "Linux":  
   from PIL import Image, ImageTk
 
-class Inventario:
+class Inventario:  
   def __init__(self, master=None):
     self.path = path.dirname(path.abspath(__file__))
-    #self.path = r'X:/Users/ferna/Documents/UNal/Alumnos/2023_S2/ProyInventario'
     self.db_name = self.path + r'/Inventario.db'
-
-    ''' Dimensiones de la pantalla'''
-    ancho=830
-    alto=630
-    
+    ancho=830;alto=630 # Dimensiones de la pantalla
     self.actualizaProveedor = False
     self.actualizaProducto = False
+    #self.actualiza = False
     self.elimina = False
 
-    ''' Crea ventana principal '''
+    # Crea ventana principal
     self.win = tk.Tk() 
     self.win.geometry(f"{ancho}x{alto}")
-    '''Detecta cual es el OS y retorna los codigos necesarios para
-    abrir los iconos en Linux y Windows '''
+    # Esto detecta cual es el OS y retorna los codigos necesarios para abrir los iconos en Linux y Windows
     if platform.system() == "Windows":
       self.win.iconbitmap(self.path + r'/f2.ico')
     elif platform.system() == "Linux":
-      ima = Image.open('nino-modified.png') # Esta foto esta para mostrarse solamente en sistemas linux
+      ima = Image.open('nino-modified.png') #Esta foto esta para mostrarse solamente en sistemas linux
       pho = ImageTk.PhotoImage(ima)
       self.win.wm_iconphoto(True, pho)
-      
     self.win.resizable(False, False)
     self.win.title("Manejo de Proveedores") 
-
-    '''Se encarga de llamar la funcion de confirmacion cuando se intente cerrar la ventana'''
-    self.win.protocol("WM_DELETE_WINDOW", self.cierre)  
+    self.win.protocol("WM_DELETE_WINDOW", self.cierre)  #Se encarga de llamar la funcion de confirmacion cuando se intente cerrar la ventana
 
     #Centra la pantalla
     self.centra(self.win,ancho,alto)
@@ -139,7 +131,7 @@ class Inventario:
     self.cantidad.configure(width=12)
     self.cantidad.place(anchor="nw", x=70, y=170)
     self.cantidad.bind("<KeyRelease>", lambda event, widget = self.cantidad, largo = 10 : self.validaVarCharNum(event, widget, largo))
-
+  
     #Etiqueta precio del Producto
     self.lblPrecio = ttk.Label(self.frm1)
     self.lblPrecio.configure(text='Precio $', width=8)
@@ -162,8 +154,8 @@ class Inventario:
     self.fecha.place(anchor="nw", x=380, y=170)
     self.fecha.insert(0, "dd/mm/aaaa")
     self.fecha.bind("<KeyRelease>", lambda event, widget = self.fecha, largo = 10 : self.validaVarCharFe(event, widget, largo))
-    self.fecha.bind("<FocusIn>", self.entradaFecha)
-    self.fecha.bind("<FocusOut>", self.salidaFecha)
+    self.fecha.bind("<FocusIn>", self.entradaDatos)
+    self.fecha.bind("<FocusOut>", self.salidaDatos)
 
     #Estilo para configurar el tamaño del boton "Auto"
     TextoPequenno = ttk.Style()
@@ -262,20 +254,20 @@ class Inventario:
     
   #Fución de manejo de eventos del sistema
   def run(self):
-    self.mainwindow.mainloop()
+      self.mainwindow.mainloop()
   
   ''' ......... Métodos utilitarios del sistema .............'''
   #Rutina de centrado de pantalla
   def centra(self,win,ancho,alto): 
-    ''' centra las ventanas en la pantalla '''
-    x = win.winfo_screenwidth()//2 - ancho//2 
-    y = win.winfo_screenheight()//2 - alto//2 
-    win.geometry(f'{ancho}x{alto}+{x}+{y}') 
-    win.deiconify() # Se usa para restaurar la ventana
+      """ centra las ventanas en la pantalla """ 
+      x = win.winfo_screenwidth()//2 - ancho//2 
+      y = win.winfo_screenheight()//2 - alto//2 
+      win.geometry(f'{ancho}x{alto}+{x}+{y}') 
+      win.deiconify() # Se usa para restaurar la ventana
 
  # Validaciones de longitud del los campos
   def validaVarChar(self, event, widget, largo):
-    if len(widget.get()) > largo:
+    if len(widget.get()) > largo: #Antes habia un "event.char and" antes del len(widget.get), aparentemente "event.char" siempre tomaba el valor de False, seguramente borre algo impotante pero funciona
       mssg.showwarning('Error.',  f'La longitud máxima de la cadena es de {largo} caracteres.')
       widget.delete(largo, 'end')
 
@@ -283,23 +275,31 @@ class Inventario:
     if event.keysym not in ["BackSpace","Up","Down","Left","Right","0","1","2","3","4","5","6","7","8","9"]:
       text = widget.get()
       p = re.compile(r"([^\d])")
+      n = widget.index(tk.INSERT)
       widget.delete(0, "end")
       widget.insert(0,p.sub("",text))
-    if len(widget.get()) > largo: 
+      if n > largo: n = largo
+      widget.icursor(n - 1)
+    if len(widget.get()) > largo: #Antes habia un "event.char and" antes del len(widget.get), aparentemente "event.char" siempre tomaba el valor de False, seguramente borre algo impotante pero funciona
       mssg.showwarning('Error.',  f'La longitud máxima de la cadena es de {largo} caracteres.')
-      widget.delete(largo, 'end')      
-
+      widget.delete(largo, 'end')   
+      
   def validaVarCharNumPre(self, event, widget, largo):    
     if event.keysym not in ["BackSpace","Up","Down","Left","Right","0","1","2","3","4","5","6","7","8","9"]:
       text = widget.get()
       p = re.compile(r"([^\d])")
       p2  = re.compile(r"([^\d\.])")
+      n = widget.index(tk.INSERT)
       widget.delete(0, "end")
-      if len(text.split(r".")) > 2:
+      if n > largo: n = largo
+      m = len(text.split(r"."))
+      if m > 2:
         widget.insert(0,p.sub("",text))
+        widget.icursor(n - m + 1)
       else:
         widget.insert(0,p2.sub("",text))
-    if len(widget.get()) > largo: 
+        widget.icursor(n)      
+    if len(widget.get()) > largo: #Antes habia un "event.char and" antes del len(widget.get), aparentemente "event.char" siempre tomaba el valor de False, seguramente borre algo impotante pero funciona
       mssg.showwarning('Error.',  f'La longitud máxima de la cadena es de {largo} caracteres.')
       widget.delete(largo, 'end')
 
@@ -352,13 +352,18 @@ class Inventario:
           addSlash = False    
     if addSlash == True:
       text = text + "/"
+    if uEntry:
+      n = widget.index(tk.INSERT)
+      if n > largo: n = largo
     if addSlash == True or uEntry == True:
       widget.delete(0, "end")
       widget.insert(0, text)
     terms = text.split("/")
+    if uEntry: widget.icursor(n - 1)
     if len(terms) == 3:
       if len(terms[2]) > 4:
         widget.delete(len(text) - (len(terms[2]) - 4), "end")
+        
     if len(widget.get()) > largo: #Antes habia un "event.char and" antes del len(widget.get), aparentemente "event.char" siempre tomaba el valor de False, seguramente borre algo impotante pero funciona
       mssg.showwarning('Error.',  f'La longitud máxima de la cadena es de {largo} caracteres.')
       widget.delete(largo, 'end')
@@ -370,7 +375,7 @@ class Inventario:
     cod = self.codigo.get()
     errorMessage = ''
     if cod == '':
-      errorMessage += 'Para ingresar un producto, ingrese su codigo\n'
+      errorMessage += 'No se puede ingresar un producto sin un codigo\n'
     if can != "":
       try:        
         if int(can) < 1: errorMessage = errorMessage + "La cantidad ingresada no es correcta.\n"
@@ -384,7 +389,7 @@ class Inventario:
         errorMessage = errorMessage + "El precio ingresado no es correcto.\n"
     fe = self.fecha.get()
     if fe != "":  # Tenia and idN == "" pero es inecesario si no se llama la funcion al ingresar proveedor
-      if not self.vFecha(fe):
+      if not(self.vFecha(fe)):
         errorMessage = errorMessage + "La fecha ingresada no es correcta.\n"
     if len(errorMessage) > 0:
       mssg.showwarning("Error en los datos de entrada.",errorMessage)
@@ -393,8 +398,7 @@ class Inventario:
   
 # Función para validar fecha
   def vFecha(self, fecha):
-    ''' Valida si la fecha ingresada es correcta de acuerdo al calendario gregoriano, 
-    ademas revisa con que no sea una fecha futura.
+    ''' Valida si la fecha ingresada es correcta de acuerdo al calendario gregoriano, ademas revisa con que no sea una fecha futura.
     Retorna True si esta es válida o False en cualquier otro caso. '''
     diasMes = {1:31,2:28,3:31,4:30,5:31,6:30,7:31,8:31,9:30,10:31,11:30,12:31}  #Dias por mes
     cSlashes = 0    #Cantidad de slashes en la entrada
@@ -408,37 +412,37 @@ class Inventario:
     if cSlashes != 2:
       return False
     else:   
-      dia, mes, ano = (x for x in f.split("/")) #Asignación de cada dato de la entrada a una variable diferente
-      try:    #Validación de datos correctos
-          dia = int(dia)
-          mes = int(mes)
-      except:
+        dia, mes, ano = (x for x in f.split("/")) #Asignación de cada dato de la entrada a una variable diferente
+        try:    #Validación de datos correctos
+            dia = int(dia)
+            mes = int(mes)
+        except:
+            return False
+        try:
+            ano = int(ano)  #valida si el año se puede convertir directamente a entero
+            if ano <= 1900 or ano > 3000: 
+                return False     
+        except: #Se ejecuta si el año ingresado no se puede convertir directamente
+            return False
+        #Los siguientes if's revisan que la fecha no sea del futuro
+        if ano > int(datetime.today().strftime('%Y')):
           return False
-      try:
-          ano = int(ano)  #valida si el año se puede convertir directamente a entero
-          if ano <= 1900 or ano > 3000: 
-              return False     
-      except: #Se ejecuta si el año ingresado no se puede convertir directamente
+        elif mes > int(datetime.today().strftime('%m')):
           return False
-      #Los siguientes if's revisan que la fecha no sea del futuro
-      if ano > int(datetime.today().strftime('%Y')):
-        return False
-      elif mes > int(datetime.today().strftime('%m')):
-        return False
-      elif dia > int(datetime.today().strftime('%d')):
-        return False
-      if mes > 12 or mes < 1 or dia < 1 or mes != 2 and diasMes[mes] < dia:   #Valida si los números ingresados en la fecha son válidos excepto para febrero
+        elif dia > int(datetime.today().strftime('%d')):
           return False
-      if mes == 2:    #Valida si el mes es febrero
-          if ano > 0 and ano%4 == 0 or ano < 0 and (ano + 1)%4 == 0:  #Valida si el año es bisiesto
-              if dia > 29:
-                  return False
-              if ano%100 == 0 and ano%400 != 0:   #Valida si es año bisiesto no válido en el calendario gregoriano
-                  if dia > diasMes[mes]: return False
-          else:
-              if dia > diasMes[mes]:  #Valida si el mes no es febrero
-                  return False
-      return True
+        if mes > 12 or mes < 1 or dia < 1 or mes != 2 and diasMes[mes] < dia:   #Valida si los números ingresados en la fecha son válidos excepto para febrero
+            return False
+        if mes == 2:    #Valida si el mes es febrero
+            if ano > 0 and ano%4 == 0 or ano < 0 and (ano + 1)%4 == 0:  #Valida si el año es bisiesto
+                if dia > 29:
+                    return False
+                if ano%100 == 0 and ano%400 != 0:   #Valida si es año bisiesto no válido en el calendario gregoriano
+                    if dia > diasMes[mes]: return False
+            else:
+                if dia > diasMes[mes]:  #Valida si el mes no es febrero
+                    return False
+        return True
   #Función que actualiza los campos relativos al proveedor
   # en caso de digitar un NIT existente en su respectivo campo.
   def updateProvider(self, event = None):
@@ -479,30 +483,31 @@ class Inventario:
 
   #Rutina de limpieza de datos
   def limpiaCampos(self):
-    ''' Limpia todos los campos de captura'''
-    if self.actualizaProducto or self.actualizaProveedor or self.elimina: self.cancelar()
-    self.idNit.delete(0,'end')
-    self.razonSocial.delete(0,'end')
-    self.ciudad.delete(0,'end')
-    self.idNit.delete(0,'end')
-    self.codigo.delete(0,'end')
-    self.descripcion.delete(0,'end')
-    self.unidad.delete(0,'end')
-    self.cantidad.delete(0,'end')
-    self.precio.delete(0,'end')
-    self.fecha.delete(0,'end')
-    self.salidaFecha() #Notaran que toma  un None como parametro, no tengo idea de como funciona, solo le di Tab al autocompletado,, supongo que es porque esta programaado como un evento
+      ''' Limpia todos los campos de captura'''
+      if self.actualizaProducto or self.actualizaProveedor or self.elimina: self.cancelar()
+      self.idNit.delete(0,'end')
+      self.razonSocial.delete(0,'end')
+      self.ciudad.delete(0,'end')
+      self.idNit.delete(0,'end')
+      self.codigo.delete(0,'end')
+      self.descripcion.delete(0,'end')
+      self.unidad.delete(0,'end')
+      self.cantidad.delete(0,'end')
+      self.precio.delete(0,'end')
+      self.fecha.delete(0,'end')
+      self.salidaDatos(None) #Notaran que toma  un None como parametro, no tengo idea de como funciona, solo le di Tab al autocompletado,, supongo que es porque esta programaado como un evento
 
   #Funcion para colocar fecha automaticamente
   def Auto(self):
-    '''Pone la fecha actual en el campo correspondiente.'''
-    self.fecha.delete(0, 'end')
-    self.fecha.insert(-1, str(datetime.today().strftime('%d/%m/%Y')))
-    self.fecha.config(foreground="black") #Esto es poqrue el campo de texto debe esta definido como default en gris para poner el placeholder, dd/mm/aaaa, tonces lo cambia
+    if self.Auto:
+      self.Auto = True
+      self.fecha.delete(0, 'end')
+      self.fecha.insert(-1, str(datetime.today().strftime('%d/%m/%Y')))
+      self.fecha.config(foreground="black") #Esto es poqrue el campo de texto debe esta definido como default en gris para poner el placeholder, dd/mm/aaaa, tonces lo cambia
 
   #Función para buscar los productos de un proveedor
   def buscar(self, event = None):
-    '''Función para buscar los productos de un proveedor.'''
+    '''Función para buscar los productos de un proveedor'''
     idN = self.idNit.get()
     if idN == "":
       mssg.showinfo("Nit de proveedor.", "Ingrese un NIT de proveedor para buscar sus productos.")
@@ -513,7 +518,7 @@ class Inventario:
         mssg.showerror("Error en la base de datos.", f"Error {type(e)}: {e}")
       tabla_TreeView = self.treeProductos.get_children()
       for linea in tabla_TreeView:
-        self.treeProductos.delete(linea) # Límpia la filas del TreeView        
+          self.treeProductos.delete(linea) # Límpia la filas del TreeView        
       # Insertando los datos de la BD en treeProductos de la pantalla
       row = None
       for row in r:
@@ -538,7 +543,8 @@ class Inventario:
           mssg.showinfo(None,"Proveedor agregado exitosamente.")
           self.change = True
           return True # El proveedor fue agregado
-        mssg.showerror("Error", "Error en la operación de adición de registro.")
+        else:
+          mssg.showerror("Error", "Error en la operación de adición de registro.")
     else:
       return True # El proveedor ya existia.
     return False
@@ -613,7 +619,6 @@ class Inventario:
       mssg.showinfo(None, 'Producto editado correctamente.')
       return True
     return False
-  
   def editarProveedor(self):
     '''Rutina para editar el proveedor ingresado en la pantalla'''
     idN = self.idNit.get()
@@ -678,6 +683,7 @@ class Inventario:
         self.buscar()
     else:
       self.insertarProducto()
+      self.buscar()
   
   #Función para habilitar el modo de edición de registros.
   def editar(self):
@@ -691,6 +697,8 @@ class Inventario:
       self.actualizaProducto = True
       self.habilitarCampos(producto=False, botonesEdicion=False, proveedor=False)
   
+  #Función que carga datos del registro seleccionado del TreeRow para ser modificados en caso de modo de edición
+  # o que borra los datos del registro del TreeRow seleccionado de la base de datos en caso de modo de eliminación.
   def selectTreeRow(self,x):
     '''Función que carga datos del registro seleccionado del TreeRow para ser modificados en caso de modo de edición
         o que borra los datos del registro del TreeRow seleccionado de la base de datos en caso de modo de eliminación.'''
@@ -774,57 +782,55 @@ class Inventario:
       self.habilitarCampos(botonesEdicion=False, producto=False, proveedor=False)
       self.btnGrabar.config(state = "disabled")
 
+  #Rutina para cargar los datos en el árbol  
   def carga_Datos(self):
-    ''' Rutina para cargar los datos en el árbol. '''
     self.idNit.insert(0,self.treeProductos.item(self.treeProductos.selection())['text'])
     self.idNit.configure(state = 'readonly')
     self.razonSocial.insert(0,self.treeProductos.item(self.treeProductos.selection())['values'][0])
     self.unidad.insert(0,self.treeProductos.item(self.treeProductos.selection())['values'][3])
 
+  #Rutina para actualizar la lista de los proveedores con las coincidencias en la base de datos
   def actualizarProveedores(self):
-    '''Rutina para actualizar la lista de los proveedores con las coincidencias en la base de datos. '''
     consulta = f"SELECT IdNitProv FROM Proveedor WHERE IdNitProv LIKE '%{self.idNit.get()}%'"
     resultados = self.run_Query(consulta)
     self.idNit['values'] = [row[0] for row in resultados]
-        
+      
+  #Funcion que escribe automaticamente los "/" en la fecha    
   def autocompletadoFecha(self, event):
-    '''Funcion que escribe automaticamente los "/" en la fecha  '''
     Fe = self.fecha.get()
     if (len(Fe) == 2 or len(Fe) == 5): 
-      Fe += "/"
-      self.fecha.delete(0, 'end')  # Borra el contenido actual del Entry
-      self.fecha.insert('end', Fe) # Y reescribe para evitar problemas
+        Fe += "/"
+        self.fecha.delete(0, 'end')  # Borra el contenido actual del Entry
+        self.fecha.insert('end', Fe) # Y reescribe para evitar problemas
     self.validaVarChar(event, self.fecha, 10) #Como la fecha requiere mas validaciones, entonces inclui la del varchar en la de poner los "/"
     if (len(Fe) == 3 or len(Fe) == 6) and event.keysym == "BackSpace": #El event.keysym revisa si la tecla que se presiono fue el backspace, si lo fue borra el "/"  junto con la letra que se deseaba borrar
-      Fe = Fe[:-1]
-      self.fecha.delete(0, 'end')  
-      self.fecha.insert('end', Fe)
+        Fe = Fe[:-1]
+        self.fecha.delete(0, 'end')  
+        self.fecha.insert('end', Fe)
     if (len(Fe) == 3 or len(Fe) == 6) and Fe[-1] != "/": #Revisa so hace falta un / en su respectiva posicion y corta el string para meterlo donde deberia
-      Fe = Fe[:-1] + "/" + Fe[-1:]
-      self.fecha.delete(0, 'end')  
-      self.fecha.insert('end', Fe)
+        Fe = Fe[:-1] + "/" + Fe[-1:]
+        self.fecha.delete(0, 'end')  
+        self.fecha.insert('end', Fe)
   
-  def entradaFecha(self, event):
-    '''Funcion que borra el placeholder de la fecha cuando entra en focus'''
+  #Funcion que borra el placeholder de la fecha cuando entra en focus
+  def entradaDatos(self, event):
     if self.fecha.get() == "dd/mm/aaaa":
         self.fecha.delete(0, 'end')
         self.fecha.config(foreground="black")
 
-  def salidaFecha(self, event = None):
-    '''Funcion que reescribe el placeholder de la fecha, si el campo de
-    la fecha no esta en focus, revisa si esta vacio y vuelve a escribir el -Placeholder- '''
+  #Funcion que reescribe el placeholder de la fecha, si el campo de la fecha no esta en focus, revisa si esta vacio y vuelve a escribir el "Placeholder"
+  def salidaDatos(self, event):
     if self.fecha.get() == "":
-      self.fecha.insert(0, "dd/mm/aaaa")
-      self.fecha.config(foreground="gray")
+        self.fecha.insert(0, "dd/mm/aaaa")
+        self.fecha.config(foreground="gray")
 
-  ''' Esta funcion ni se llama XD
   def validacionTipoDato(self, event, widget):
     if widget == self.fecha:
       st = widget.get()
       if not (st[-1].isdigit):
         widget.delete(len(st)-1, 'end')
-  '''
-  
+
+  # Operaciones con la base de datos
   def run_Query(self, query, parametros = ()):
     ''' Función para ejecutar los Querys a la base de datos '''
     with sqlite3.connect(self.db_name) as conn:
@@ -838,7 +844,7 @@ class Inventario:
     ''' Carga los datos y Limpia la Tabla tablaTreeView '''
     tabla_TreeView = self.treeProductos.get_children()
     for linea in tabla_TreeView:
-      self.treeProductos.delete(linea) # Límpia la filas del TreeView
+        self.treeProductos.delete(linea) # Límpia la filas del TreeView
     
     # Seleccionando los datos de la BD
     query = '''SELECT * from Proveedor INNER JOIN Inventario WHERE idNitProv = idNit ORDER BY idNitProv'''
@@ -851,6 +857,29 @@ class Inventario:
     row = None
     for row in db_rows:
       self.treeProductos.insert('',0, text = row[0], values = [row[4],row[5],row[6],row[7],row[8],row[9]])
+
+    ''' Al final del for row queda con la última tupla
+        y se usan para cargar las variables de captura
+    '''
+    #if row != None:
+    #  self.idNit.delete(0,"end")
+    #  self.idNit.insert(0,row[0])
+    #  self.razonSocial.delete(0,"end")
+    #  self.razonSocial.insert(0,row[1])
+    #  self.ciudad.delete(0,"end")
+    #  self.ciudad.insert(0,row[2])
+    #  self.codigo.delete(0,"end")
+    #  self.codigo.insert(0,row[4])
+    #  self.descripcion.delete(0,"end")
+    #  self.descripcion.insert(0,row[5])
+    #  self.unidad.delete(0,"end")
+    #  self.unidad.insert(0,row[6])
+    #  self.cantidad.delete(0,"end")
+    #  self.cantidad.insert(0,int(row[7]))
+    #  self.precio.delete(0,"end")
+    #  self.precio.insert(0,row[8])
+    #  self.fecha.delete(0,"end")
+    #  self.fecha.insert(0,row[9])  
 
   def cierre(self):
     if mssg.askokcancel('¿Desea cerrar la aplicacion?', 'Todo progreso no guardado se perdera'):
