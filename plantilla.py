@@ -497,7 +497,7 @@ class Inventario:
       self.cantidad.delete(0,'end')
       self.precio.delete(0,'end')
       self.fecha.delete(0,'end')
-      self.salidaDatos(None) #Notaran que toma  un None como parametro, no tengo idea de como funciona, solo le di Tab al autocompletado,, supongo que es porque esta programaado como un evento
+      self.salidaDatos(None) 
 
   #Funcion para colocar fecha automaticamente
   def Auto(self):
@@ -787,50 +787,35 @@ class Inventario:
       self.elimina = True
       self.habilitarCampos(botonesEdicion=False, producto=False, proveedor=False)
       self.btnGrabar.config(state = "disabled")
-
-  #Rutina para cargar los datos en el árbol  
+ 
   def carga_Datos(self):
+    ''' Rutina para cargar los datos en el árbol. '''
     self.idNit.insert(0,self.treeProductos.item(self.treeProductos.selection())['text'])
     self.idNit.configure(state = 'readonly')
     self.razonSocial.insert(0,self.treeProductos.item(self.treeProductos.selection())['values'][0])
     self.unidad.insert(0,self.treeProductos.item(self.treeProductos.selection())['values'][3])
 
-  #Rutina para actualizar la lista de los proveedores con las coincidencias en la base de datos
+  
   def actualizarProveedores(self):
+    '''Rutina para actualizar la lista de los proveedores con las coincidencias en la base de datos'''
     consulta = f"SELECT IdNitProv FROM Proveedor WHERE IdNitProv LIKE '%{self.idNit.get()}%'"
     resultados = self.run_Query(consulta)
     self.idNit['values'] = [row[0] for row in resultados]
-      
-  #Funcion que escribe automaticamente los "/" en la fecha    
-  def autocompletadoFecha(self, event):
-    Fe = self.fecha.get()
-    if (len(Fe) == 2 or len(Fe) == 5): 
-        Fe += "/"
-        self.fecha.delete(0, 'end')  # Borra el contenido actual del Entry
-        self.fecha.insert('end', Fe) # Y reescribe para evitar problemas
-    self.validaVarChar(event, self.fecha, 10) #Como la fecha requiere mas validaciones, entonces inclui la del varchar en la de poner los "/"
-    if (len(Fe) == 3 or len(Fe) == 6) and event.keysym == "BackSpace": #El event.keysym revisa si la tecla que se presiono fue el backspace, si lo fue borra el "/"  junto con la letra que se deseaba borrar
-        Fe = Fe[:-1]
-        self.fecha.delete(0, 'end')  
-        self.fecha.insert('end', Fe)
-    if (len(Fe) == 3 or len(Fe) == 6) and Fe[-1] != "/": #Revisa so hace falta un / en su respectiva posicion y corta el string para meterlo donde deberia
-        Fe = Fe[:-1] + "/" + Fe[-1:]
-        self.fecha.delete(0, 'end')  
-        self.fecha.insert('end', Fe)
   
-  #Funcion que borra el placeholder de la fecha cuando entra en focus
+  
   def entradaDatos(self, event):
+    '''Funcion que borra el placeholder de la fecha cuando entra en focus'''
     if self.fecha.get() == "dd/mm/aaaa":
         self.fecha.delete(0, 'end')
         self.fecha.config(foreground="black")
 
-  #Funcion que reescribe el placeholder de la fecha, si el campo de la fecha no esta en focus, revisa si esta vacio y vuelve a escribir el "Placeholder"
+  
   def salidaDatos(self, event):
+    '''Funcion que reescribe el placeholder de la fecha, si el campo de la fecha no esta en focus, revisa si esta vacio y vuelve a escribir el -Placeholder- '''
     if self.fecha.get() == "":
         self.fecha.insert(0, "dd/mm/aaaa")
         self.fecha.config(foreground="gray")
 
-  # Operaciones con la base de datos
   def run_Query(self, query, parametros = ()):
     ''' Función para ejecutar los Querys a la base de datos '''
     with sqlite3.connect(self.db_name) as conn:
@@ -839,7 +824,6 @@ class Inventario:
         conn.commit()
     return result
 
-  #función que carga todos los productos de la base de datos en el TreeRow
   def lee_treeProductos(self):
     ''' Carga los datos y Limpia la Tabla tablaTreeView '''
     tabla_TreeView = self.treeProductos.get_children()
@@ -857,30 +841,7 @@ class Inventario:
     row = None
     for row in db_rows:
       self.treeProductos.insert('',0, text = row[0], values = [row[4],row[5],row[6],row[7],row[8],row[9]])
-
-    ''' Al final del for row queda con la última tupla
-        y se usan para cargar las variables de captura
-    '''
-    #if row != None:
-    #  self.idNit.delete(0,"end")
-    #  self.idNit.insert(0,row[0])
-    #  self.razonSocial.delete(0,"end")
-    #  self.razonSocial.insert(0,row[1])
-    #  self.ciudad.delete(0,"end")
-    #  self.ciudad.insert(0,row[2])
-    #  self.codigo.delete(0,"end")
-    #  self.codigo.insert(0,row[4])
-    #  self.descripcion.delete(0,"end")
-    #  self.descripcion.insert(0,row[5])
-    #  self.unidad.delete(0,"end")
-    #  self.unidad.insert(0,row[6])
-    #  self.cantidad.delete(0,"end")
-    #  self.cantidad.insert(0,int(row[7]))
-    #  self.precio.delete(0,"end")
-    #  self.precio.insert(0,row[8])
-    #  self.fecha.delete(0,"end")
-    #  self.fecha.insert(0,row[9])  
-
+      
   def cierre(self):
     if mssg.askokcancel('¿Desea cerrar la aplicacion?', 'Todo progreso no guardado se perdera'):
       self.win.destroy() #Esta linea de codigo pues no es estrictamente necesaria pero primero borra todos los widgets de la ventana antes de cerrarla
