@@ -14,13 +14,11 @@ if platform.system() == "Linux":
 class Inventario:  
   def __init__(self, master=None):
     self.path = path.dirname(path.abspath(__file__))
-    #self.path = r'X:/Users/ferna/Documents/UNal/Alumnos/2023_S2/ProyInventario'
     self.db_name = self.path + r'/Inventario.db'
     
     ancho=830;alto=630 # Dimensiones de la pantalla
     self.actualizaProveedor = False
     self.actualizaProducto = False
-    #self.actualiza = False
     self.elimina = False
 
     # Crea ventana principal
@@ -278,23 +276,31 @@ class Inventario:
     if event.keysym not in ["BackSpace","Up","Down","Left","Right","0","1","2","3","4","5","6","7","8","9"]:
       text = widget.get()
       p = re.compile(r"([^\d])")
+      n = widget.index(tk.INSERT)
       widget.delete(0, "end")
       widget.insert(0,p.sub("",text))
+      if n > largo: n = largo
+      widget.icursor(n - 1)
     if len(widget.get()) > largo: #Antes habia un "event.char and" antes del len(widget.get), aparentemente "event.char" siempre tomaba el valor de False, seguramente borre algo impotante pero funciona
       mssg.showwarning('Error.',  f'La longitud máxima de la cadena es de {largo} caracteres.')
-      widget.delete(largo, 'end')      
-
+      widget.delete(largo, 'end')   
+      
   def validaVarCharNumPre(self, event, widget, largo):    
     if event.keysym not in ["BackSpace","Up","Down","Left","Right","0","1","2","3","4","5","6","7","8","9"]:
       text = widget.get()
       p = re.compile(r"([^\d])")
       p2  = re.compile(r"([^\d\.])")
+      n = widget.index(tk.INSERT)
       widget.delete(0, "end")
-      if len(text.split(r".")) > 2:
+      if n > largo: n = largo
+      m = len(text.split(r"."))
+      if m > 2:
         widget.insert(0,p.sub("",text))
+        widget.icursor(n - m + 1)
       else:
         widget.insert(0,p2.sub("",text))
-    if len(widget.get()) > largo: 
+        widget.icursor(n - 1)
+    if len(widget.get()) > largo: #Antes habia un "event.char and" antes del len(widget.get), aparentemente "event.char" siempre tomaba el valor de False, seguramente borre algo impotante pero funciona
       mssg.showwarning('Error.',  f'La longitud máxima de la cadena es de {largo} caracteres.')
       widget.delete(largo, 'end')
 
@@ -347,14 +353,18 @@ class Inventario:
           addSlash = False    
     if addSlash == True:
       text = text + "/"
+    if uEntry:
+      n = widget.index(tk.INSERT)
+      if n > largo: n = largo
     if addSlash == True or uEntry == True:
       widget.delete(0, "end")
       widget.insert(0, text)
     terms = text.split("/")
+    if uEntry: widget.icursor(n - 1)
     if len(terms) == 3:
       if len(terms[2]) > 4:
-        widget.delete(len(text) - (len(terms[2]) - 4), "end")
-    if len(widget.get()) > largo: 
+        widget.delete(len(text) - (len(terms[2]) - 4), "end")        
+    if len(widget.get()) > largo: #Antes habia un "event.char and" antes del len(widget.get), aparentemente "event.char" siempre tomaba el valor de False, seguramente borre algo impotante pero funciona
       mssg.showwarning('Error.',  f'La longitud máxima de la cadena es de {largo} caracteres.')
       widget.delete(largo, 'end')
 
@@ -460,9 +470,6 @@ class Inventario:
     r = self.run_Query("Select * from Inventario where Codigo = ? and IdNit = ?;", (self.codigo.get(), self.idNit.get(),)) #queda poner un and para que no fuerze el primer codigo que encuentre
     r = r.fetchone()
     if r != None:
-      #self.idNit.delete(0,"end")
-      #self.idNit.insert(0,r[0])
-      #self.updateProvider("")
       self.descripcion.delete(0,"end")
       self.descripcion.insert(0,r[2])
       self.unidad.delete(0,"end")
@@ -475,14 +482,11 @@ class Inventario:
       self.fecha.insert(0,r[6])
       self.fecha.config(foreground="black")
     else:
-      #self.idNit.delete(0,"end")
-      #self.updateProvider("")
       self.descripcion.delete(0,"end")
       self.unidad.delete(0,"end")
       self.cantidad.delete(0,"end")
       self.precio.delete(0,"end")
       self.fecha.delete(0,"end")
-      self.salidaDatos(None)
   #Rutina de limpieza de datos
   def limpiaCampos(self):
       ''' Limpia todos los campos de captura'''
@@ -497,7 +501,6 @@ class Inventario:
       self.cantidad.delete(0,'end')
       self.precio.delete(0,'end')
       self.fecha.delete(0,'end')
-      self.salidaDatos(None) 
 
   #Funcion para colocar fecha automaticamente
   def Auto(self):
@@ -524,7 +527,6 @@ class Inventario:
       # Insertando los datos de la BD en treeProductos de la pantalla
       row = None
       for row in r:
-          #if row[7] == '': row[7] = 0
         self.treeProductos.insert('',0, text = row[0], values = [row[4],row[5],row[6],row[7],row[8],row[9]])
     r = self.run_Query("select * from Proveedor where idNitProv = ?;", (idN,))
     if r.fetchone() == None:
