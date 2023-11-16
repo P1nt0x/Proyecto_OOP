@@ -14,7 +14,9 @@ if platform.system() == "Linux":
 class Inventario:  
   def __init__(self, master=None):
     self.path = path.dirname(path.abspath(__file__))
+    #self.path = r'X:/Users/ferna/Documents/UNal/Alumnos/2023_S2/ProyInventario'
     self.db_name = self.path + r'/Inventario.db'
+    
     ancho=830;alto=630 # Dimensiones de la pantalla
     self.actualizaProveedor = False
     self.actualizaProducto = False
@@ -155,8 +157,8 @@ class Inventario:
     self.fecha.place(anchor="nw", x=380, y=170)
     self.fecha.insert(0, "dd/mm/aaaa")
     self.fecha.bind("<KeyRelease>", lambda event, widget = self.fecha, largo = 10 : self.validaVarCharFe(event, widget, largo))
-    self.fecha.bind("<FocusIn>", self.entradaDatos)
-    self.fecha.bind("<FocusOut>", self.salidaDatos)
+    self.fecha.bind("<FocusIn>", self.entradaFecha)
+    self.fecha.bind("<FocusOut>", self.salidaFecha)
 
     #Estilo para configurar el tamaño del boton "Auto"
     TextoPequenno = ttk.Style()
@@ -268,7 +270,7 @@ class Inventario:
 
  # Validaciones de longitud del los campos
   def validaVarChar(self, event, widget, largo):
-    if len(widget.get()) > largo: #Antes habia un "event.char and" antes del len(widget.get), aparentemente "event.char" siempre tomaba el valor de False, seguramente borre algo impotante pero funciona
+    if len(widget.get()) > largo: 
       mssg.showwarning('Error.',  f'La longitud máxima de la cadena es de {largo} caracteres.')
       widget.delete(largo, 'end')
 
@@ -292,7 +294,7 @@ class Inventario:
         widget.insert(0,p.sub("",text))
       else:
         widget.insert(0,p2.sub("",text))
-    if len(widget.get()) > largo: #Antes habia un "event.char and" antes del len(widget.get), aparentemente "event.char" siempre tomaba el valor de False, seguramente borre algo impotante pero funciona
+    if len(widget.get()) > largo: 
       mssg.showwarning('Error.',  f'La longitud máxima de la cadena es de {largo} caracteres.')
       widget.delete(largo, 'end')
 
@@ -352,7 +354,7 @@ class Inventario:
     if len(terms) == 3:
       if len(terms[2]) > 4:
         widget.delete(len(text) - (len(terms[2]) - 4), "end")
-    if len(widget.get()) > largo: #Antes habia un "event.char and" antes del len(widget.get), aparentemente "event.char" siempre tomaba el valor de False, seguramente borre algo impotante pero funciona
+    if len(widget.get()) > largo: 
       mssg.showwarning('Error.',  f'La longitud máxima de la cadena es de {largo} caracteres.')
       widget.delete(largo, 'end')
 
