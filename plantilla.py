@@ -803,14 +803,14 @@ class Inventario:
     self.idNit['values'] = [row[0] for row in resultados]
   
   
-  def entradaDatos(self, event):
+  def entradaFecha(self, event):
     '''Funcion que borra el placeholder de la fecha cuando entra en focus'''
     if self.fecha.get() == "dd/mm/aaaa":
         self.fecha.delete(0, 'end')
         self.fecha.config(foreground="black")
 
   
-  def salidaDatos(self, event):
+  def salidaFecha(self, event):
     '''Funcion que reescribe el placeholder de la fecha, si el campo de la fecha no esta en focus, revisa si esta vacio y vuelve a escribir el -Placeholder- '''
     if self.fecha.get() == "":
         self.fecha.insert(0, "dd/mm/aaaa")
@@ -841,7 +841,7 @@ class Inventario:
     row = None
     for row in db_rows:
       self.treeProductos.insert('',0, text = row[0], values = [row[4],row[5],row[6],row[7],row[8],row[9]])
-      
+
   def cierre(self):
     if mssg.askokcancel('¿Desea cerrar la aplicacion?', 'Todo progreso no guardado se perdera'):
       self.win.destroy() #Esta linea de codigo pues no es estrictamente necesaria pero primero borra todos los widgets de la ventana antes de cerrarla
