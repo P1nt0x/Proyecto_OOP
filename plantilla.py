@@ -15,10 +15,10 @@ class Inventario:
   def __init__(self, master=None):
     self.path = path.dirname(path.abspath(__file__))
     self.db_name = self.path + r'/Inventario.db'
-    
     ancho=830;alto=630 # Dimensiones de la pantalla
     self.actualizaProveedor = False
     self.actualizaProducto = False
+    #self.actualiza = False
     self.elimina = False
 
     # Crea ventana principal
@@ -71,7 +71,7 @@ class Inventario:
     self.razonSocial = ttk.Entry(self.frm1)
     self.razonSocial.configure(width=36)
     self.razonSocial.place(anchor="nw", x=295, y=40)
-    self.razonSocial.bind("<KeyRelease>", lambda event, widget=self.razonSocial, largo=50 : self.validaVarChar(event, widget, largo))
+    self.razonSocial.bind("<KeyRelease>", lambda event, widget=self.razonSocial, largo=50 : self.validaVarChar(event, widget, largo), add="+")
 
     #Etiqueta ciudad del Proveedor
     self.lblCiudad = ttk.Label(self.frm1)
@@ -107,7 +107,7 @@ class Inventario:
     #Captura la descripción del Producto
     self.descripcion = ttk.Entry(self.frm1)
     self.descripcion.configure(width=36)
-    self.descripcion.place(anchor="nw", x=290, y=120) # 100
+    self.descripcion.place(anchor="nw", x=290, y=120) 
     self.descripcion.bind("<KeyRelease>", lambda event, widget = self.descripcion, largo = 100 : self.validaVarChar(event, widget, largo))
 
     #Etiqueta unidad o medida del Producto
@@ -164,7 +164,7 @@ class Inventario:
 
     #Boton para poner fecha automaticamente
     self.btnAuto = ttk.Button(self.frm1)
-    self.btnAuto.configure(text='Auto', command= self.Auto, style="TextoPequenno.TButton")
+    self.btnAuto.configure(text='Hoy', command= self.Auto, style="TextoPequenno.TButton")
     self.btnAuto.place(anchor="nw", height=22,width=37, x=470, y=170)
 
     #Separador
@@ -487,7 +487,8 @@ class Inventario:
       self.cantidad.delete(0,"end")
       self.precio.delete(0,"end")
       self.fecha.delete(0,"end")
-  #Rutina de limpieza de datos
+      self.salidaFecha(None)
+
   def limpiaCampos(self):
       ''' Limpia todos los campos de captura'''
       if self.actualizaProducto or self.actualizaProveedor or self.elimina: self.cancelar()
@@ -501,13 +502,14 @@ class Inventario:
       self.cantidad.delete(0,'end')
       self.precio.delete(0,'end')
       self.fecha.delete(0,'end')
+      self.salidaFecha(None) 
 
   #Funcion para colocar fecha automaticamente
   def Auto(self):
     if self.Auto:
       self.Auto = True
       self.fecha.delete(0, 'end')
-      self.fecha.insert(-1, str(datetime.today().strftime('%d/%m/%Y')))
+      self.fecha.insert(-1,  str(datetime.today().strftime('%d/%m/%Y')))
       self.fecha.config(foreground="black") #Esto es poqrue el campo de texto debe esta definido como default en gris para poner el placeholder, dd/mm/aaaa, tonces lo cambia
 
   #Función para buscar los productos de un proveedor
@@ -527,9 +529,10 @@ class Inventario:
       # Insertando los datos de la BD en treeProductos de la pantalla
       row = None
       for row in r:
+          #if row[7] == '': row[7] = 0
         self.treeProductos.insert('',0, text = row[0], values = [row[4],row[5],row[6],row[7],row[8],row[9]])
     r = self.run_Query("select * from Proveedor where idNitProv = ?;", (idN,))
-    if r.fetchone() == None:
+    if (r.fetchone() == None) and (not idN == ""):
       mssg.showerror("Error", "Al parecer, este proveedor no se encuentra en la base de datos")
       return False
 
@@ -726,7 +729,6 @@ class Inventario:
       self.updateProduct(None)
       self.updateProvider(None)
       
-      
       self.habilitarCampos(proveedor=False, botonesEdicion=False)
       self.codigo.config(state = "disabled")
       self.fecha.delete(0, 'end')
@@ -747,14 +749,12 @@ class Inventario:
           r = self.run_Query("delete from Inventario where IdNit = ? AND codigo = ?;", (idNit, data[0]))
           if r.rowcount > 0:
             mssg.showinfo("Eliminacion exitosa", "Este producto ha sido eliminado correctamente")
-            self.buscar()
             self.lee_treeProductos()
           else:
             mssg.showinfo("No se ha podido eliminar el producto")
       except Exception as e:
         mssg.showerror("Error en la base de datos.", f"Error {type(e)}: {e}")
       
-
   #función para cancelar edición o eliminación de datos.
   def cancelar(self):  
     '''función para cancelar edición o eliminación de datos.''' 
@@ -820,11 +820,14 @@ class Inventario:
 
   def run_Query(self, query, parametros = ()):
     ''' Función para ejecutar los Querys a la base de datos '''
-    with sqlite3.connect(self.db_name) as conn:
-        cursor = conn.cursor()
-        result = cursor.execute(query, parametros)
-        conn.commit()
-    return result
+    try:
+      with sqlite3.connect(self.db_name) as conn:
+          cursor = conn.cursor()
+          result = cursor.execute(query, parametros)
+          conn.commit()
+      return result
+    except Exception as e:
+        mssg.showerror("Error en la base de datos.", f"Error {type(e)}: {e}")
 
   def lee_treeProductos(self):
     ''' Carga los datos y Limpia la Tabla tablaTreeView '''
@@ -846,7 +849,7 @@ class Inventario:
 
   def cierre(self):
     if mssg.askokcancel('¿Desea cerrar la aplicacion?', 'Todo progreso no guardado se perdera'):
-      self.win.destroy() #Esta linea de codigo pues no es estrictamente necesaria pero primero borra todos los widgets de la ventana antes de cerrarla
+      self.win.destroy()
       self.win.quit()
 
 if __name__ == "__main__":
