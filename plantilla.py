@@ -18,7 +18,6 @@ class Inventario:
     ancho=830;alto=630 # Dimensiones de la pantalla
     self.actualizaProveedor = False
     self.actualizaProducto = False
-    #self.actualiza = False
     self.elimina = False
 
     # Crea ventana principal
@@ -299,7 +298,8 @@ class Inventario:
         widget.icursor(n - m + 1)
       else:
         widget.insert(0,p2.sub("",text))
-        widget.icursor(n - 1)
+        if event.keysym != "period": widget.icursor(n - 1)
+        else: widget.icursor(n)
     if len(widget.get()) > largo: #Antes habia un "event.char and" antes del len(widget.get), aparentemente "event.char" siempre tomaba el valor de False, seguramente borre algo impotante pero funciona
       mssg.showwarning('Error.',  f'La longitud máxima de la cadena es de {largo} caracteres.')
       widget.delete(largo, 'end')
@@ -529,7 +529,6 @@ class Inventario:
       # Insertando los datos de la BD en treeProductos de la pantalla
       row = None
       for row in r:
-          #if row[7] == '': row[7] = 0
         self.treeProductos.insert('',0, text = row[0], values = [row[4],row[5],row[6],row[7],row[8],row[9]])
     r = self.run_Query("select * from Proveedor where idNitProv = ?;", (idN,))
     if (r.fetchone() == None) and (not idN == ""):
@@ -585,6 +584,8 @@ class Inventario:
           return False
       
       # Validacion cuando se ingresa un producto
+      if cod == "":
+        return False
       if not self.validacionIngresoRegistro():
         return False
       r = self.run_Query("select * from Inventario where Codigo = ? AND IdNit = ?;",(cod,idN))
@@ -800,8 +801,7 @@ class Inventario:
   
   def actualizarProveedores(self):
     '''Rutina para actualizar la lista de los proveedores con las coincidencias en la base de datos'''
-    consulta = f"SELECT IdNitProv FROM Proveedor WHERE IdNitProv LIKE '%{self.idNit.get()}%'"
-    resultados = self.run_Query(consulta)
+    resultados = self.run_Query(f"SELECT IdNitProv FROM Proveedor WHERE IdNitProv LIKE ?",("%"+self.idNit.get()+"%",))
     self.idNit['values'] = [row[0] for row in resultados]
   
   
