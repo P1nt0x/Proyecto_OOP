@@ -222,7 +222,7 @@ class Inventario:
 
     #Botón para Buscar un Proveedor
     self.btnBuscar = ttk.Button(self.frm2)
-    self.btnBuscar.configure(text='Buscar', command = self.buscar)
+    self.btnBuscar.configure(text='Buscar', command = lambda : self.buscar(tratandoGrabar=False))
     self.btnBuscar.place(anchor="nw", width=70, x=200, y=10)
 
     #Botón para Guardar los datos
@@ -513,16 +513,19 @@ class Inventario:
       self.fecha.config(foreground="black") #Esto es poqrue el campo de texto debe esta definido como default en gris para poner el placeholder, dd/mm/aaaa, tonces lo cambia
 
   #Función para buscar los productos de un proveedor
-  def buscar(self, event = None):
+  def buscar(self, event = None, tratandoGrabar = True):
     '''Función para buscar los productos de un proveedor'''
+    ''' tratando grabar en true si no quiere mostrar el error, que sucede cuando esta intentando grabar '''
     idN = self.idNit.get()
     cod = self.codigo.get()
-    if idN == "" and cod == "":
+    if idN == "" and cod == "" and not tratandoGrabar:
       mssg.showinfo("Nit de proveedor.", "Ingrese un NIT de proveedor para buscar sus productos.")
     else:
       try:
         r = self.run_Query("SELECT * from Proveedor INNER JOIN Inventario WHERE idNitProv = ? and idNitProv = idNit;",(idN,))
       except Exception as e:
+        if tratandoGrabar:
+          return 
         mssg.showerror("Error en la base de datos.", f"Error {type(e)}: {e}")
       tabla_TreeView = self.treeProductos.get_children()
       for linea in tabla_TreeView:
@@ -532,7 +535,7 @@ class Inventario:
       for row in r:
         self.treeProductos.insert('',0, text = row[0], values = [row[4],row[5],row[6],row[7],row[8],row[9]])
     r = self.run_Query("select * from Proveedor where idNitProv = ?;", (idN,))
-    if (r.fetchone() == None) and (not idN == ""):
+    if (r.fetchone() == None) and (not idN == "") and not tratandoGrabar:
       mssg.showerror("Error", "Al parecer, este proveedor no se encuentra en la base de datos")
       return False
 
