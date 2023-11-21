@@ -369,6 +369,7 @@ class Inventario:
       widget.delete(largo, 'end')
 
   def validacionIngresoRegistro(self):
+    print("valid.")
     '''Validador de un registro de producto'''
     idN = self.idNit.get()
     can = self.cantidad.get()
@@ -579,7 +580,7 @@ class Inventario:
     
     #Validación cuando se introduce un proveedor:
     try:
-      if (cod != "" or fe != "" or pre != "" or can != "" or u != "" or des != "") and not self.validacionIngresoRegistro():
+      if ((cod != "") or( fe != "dd/mm/aaaa") or (pre != "") or (can != "") or (u != "") or (des != "")) and (not self.validacionIngresoRegistro()):
         return False
       if idN != "":
         if not self.insertarProveedor():
