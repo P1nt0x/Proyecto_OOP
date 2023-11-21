@@ -516,7 +516,8 @@ class Inventario:
   def buscar(self, event = None):
     '''Función para buscar los productos de un proveedor'''
     idN = self.idNit.get()
-    if idN == "":
+    cod = self.codigo.get()
+    if idN == "" and cod == "":
       mssg.showinfo("Nit de proveedor.", "Ingrese un NIT de proveedor para buscar sus productos.")
     else:
       try:
@@ -575,6 +576,8 @@ class Inventario:
     
     #Validación cuando se introduce un proveedor:
     try:
+      if (cod != "" or fe != "" or pre != "" or can != "" or u != "" or des != "") and not self.validacionIngresoRegistro():
+        return False
       if idN != "":
         if not self.insertarProveedor():
           self.buscar()
@@ -586,8 +589,7 @@ class Inventario:
       # Validacion cuando se ingresa un producto
       if cod == "":
         return False
-      if not self.validacionIngresoRegistro():
-        return False
+      
       r = self.run_Query("select * from Inventario where Codigo = ? AND IdNit = ?;",(cod,idN))
       if r.fetchone() != None: # Ya existe uno, no se deben duplicar.
         mssg.showerror("Error", "No pueden existir productos duplicados (En codigo y proveedor)")
