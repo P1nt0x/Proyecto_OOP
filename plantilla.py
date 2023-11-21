@@ -369,7 +369,6 @@ class Inventario:
       widget.delete(largo, 'end')
 
   def validacionIngresoRegistro(self):
-    print("valid.")
     '''Validador de un registro de producto'''
     idN = self.idNit.get()
     can = self.cantidad.get()
